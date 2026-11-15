@@ -1,3 +1,4 @@
+import { useEditorState } from "@tiptap/react";
 import type { Editor } from "@tiptap/react";
 import { ru } from "../i18n/ru";
 import {
@@ -13,12 +14,29 @@ interface TableControlsProps {
 }
 
 export default function TableControls({ editor }: TableControlsProps) {
-  if (!editor || !editor.isActive("table")) {
+  const state = useEditorState({
+    editor,
+    selector: ({ editor: current }) => {
+      if (!current) {
+        return null;
+      }
+
+      return {
+        inTable: current.isActive("table"),
+        canDeleteColumn: current
+          .can()
+          .chain()
+          .focus()
+          .deleteColumn()
+          .run(),
+        canDeleteRow: current.can().chain().focus().deleteRow().run(),
+      };
+    },
+  });
+
+  if (!editor || !state?.inTable) {
     return null;
   }
-
-  const canDeleteColumn = editor.can().chain().focus().deleteColumn().run();
-  const canDeleteRow = editor.can().chain().focus().deleteRow().run();
 
   return (
     <div className="table-controls" role="toolbar" aria-label={ru.table.controls}>
@@ -35,7 +53,7 @@ export default function TableControls({ editor }: TableControlsProps) {
       <button
         type="button"
         className="table-control"
-        disabled={!canDeleteColumn}
+        disabled={!state.canDeleteColumn}
         onClick={() => editor.chain().focus().deleteColumn().run()}
       >
         <RemoveColumnIcon />
@@ -53,7 +71,7 @@ export default function TableControls({ editor }: TableControlsProps) {
       <button
         type="button"
         className="table-control"
-        disabled={!canDeleteRow}
+        disabled={!state.canDeleteRow}
         onClick={() => editor.chain().focus().deleteRow().run()}
       >
         <RemoveRowIcon />

@@ -60,12 +60,37 @@ export function documentTitle(fileName: string, dirty: boolean): string {
   return `Wordlite — ${name}${dirty ? " *" : ""}`;
 }
 
+function hasParagraphFormatting(node: JSONContent): boolean {
+  if (node.type !== "paragraph" || !node.attrs) {
+    return false;
+  }
+
+  const attrs = node.attrs as Record<string, unknown>;
+  const align = typeof attrs.textAlign === "string" ? attrs.textAlign : "left";
+  const indent = Number(attrs.indent ?? 0);
+  const lineHeight = attrs.lineHeight;
+  const spaceBefore = Number(attrs.spaceBefore ?? 0);
+  const spaceAfter = Number(attrs.spaceAfter ?? 0);
+
+  return (
+    align !== "left" ||
+    indent > 0 ||
+    Boolean(lineHeight) ||
+    spaceBefore > 0 ||
+    spaceAfter > 0
+  );
+}
+
 export function hasFormatting(node: JSONContent): boolean {
   if (node.type === "text" && (node.marks?.length ?? 0) > 0) {
     return true;
   }
 
   if (node.type && FORMATTING_TYPES.has(node.type)) {
+    return true;
+  }
+
+  if (hasParagraphFormatting(node)) {
     return true;
   }
 

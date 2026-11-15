@@ -117,6 +117,40 @@ fn node_has_formatting(node: &PmNode) -> bool {
         return true;
     }
 
+    if node.node_type == "paragraph" {
+        if let Some(attrs) = node.attrs.as_ref().and_then(|attrs| attrs.as_object()) {
+            let align = attrs
+                .get("textAlign")
+                .and_then(|value| value.as_str())
+                .unwrap_or("left");
+            let indent = attrs
+                .get("indent")
+                .and_then(|value| value.as_u64())
+                .unwrap_or(0);
+            let line_height = attrs
+                .get("lineHeight")
+                .and_then(|value| value.as_str())
+                .unwrap_or_default();
+            let space_before = attrs
+                .get("spaceBefore")
+                .and_then(|value| value.as_u64())
+                .unwrap_or(0);
+            let space_after = attrs
+                .get("spaceAfter")
+                .and_then(|value| value.as_u64())
+                .unwrap_or(0);
+
+            if align != "left"
+                || indent > 0
+                || !line_height.is_empty()
+                || space_before > 0
+                || space_after > 0
+            {
+                return true;
+            }
+        }
+    }
+
     match node.node_type.as_str() {
         "text" | "paragraph" | "hardBreak" => {}
         _ => return true,
@@ -187,6 +221,24 @@ mod tests {
         let document = PmDoc::empty();
 
         assert!(!has_formatting(&document));
+    }
+
+    #[test]
+    fn paragraph_formatting_is_detected() {
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode {
+                attrs: Some(json!({
+                    "textAlign": "center",
+                    "indent": 1,
+                    "lineHeight": "1.5"
+                })),
+                ..PmNode::with_content("paragraph", vec![PmNode::text("текст")])
+            }],
+        };
+
+        assert!(has_formatting(&document));
     }
 
     #[test]

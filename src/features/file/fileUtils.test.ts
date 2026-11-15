@@ -73,6 +73,21 @@ describe("hasFormatting", () => {
     ).toBe(true);
   });
 
+  it("распознаёт форматирование абзаца", () => {
+    expect(
+      hasFormatting({
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            attrs: { textAlign: "center", indent: 1 },
+            content: [{ type: "text", text: "абзац" }],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   it("не считает форматированием обычный текст и переносы", () => {
     expect(
       hasFormatting({

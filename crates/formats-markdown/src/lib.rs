@@ -368,13 +368,60 @@ impl WriteContext {
     }
 }
 
+fn warn_paragraph_format(node: &PmNode, context: &mut WriteContext) {
+    let Some(attrs) = node.attrs.as_ref().and_then(|attrs| attrs.as_object()) else {
+        return;
+    };
+
+    let align = attrs
+        .get("textAlign")
+        .and_then(|value| value.as_str())
+        .unwrap_or("left");
+    let indent = attrs
+        .get("indent")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
+    let line_height = attrs
+        .get("lineHeight")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
+    let space_before = attrs
+        .get("spaceBefore")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
+    let space_after = attrs
+        .get("spaceAfter")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(0);
+
+    if align != "left" {
+        context
+            .warnings
+            .warn("Выравнивание абзацев не сохраняется в Markdown.");
+    }
+
+    if indent > 0 {
+        context
+            .warnings
+            .warn("Отступы абзацев не сохраняются в Markdown.");
+    }
+
+    if !line_height.is_empty() || space_before > 0 || space_after > 0 {
+        context
+            .warnings
+            .warn("Интервалы абзацев не сохраняются в Markdown.");
+    }
+}
+
 fn write_block(node: &PmNode, output: &mut String, indent: usize, context: &mut WriteContext) {
     match node.node_type.as_str() {
         "paragraph" => {
+            warn_paragraph_format(node, context);
             write_inline_children(node, output, context);
             output.push_str("\n\n");
         }
         "heading" => {
+            warn_paragraph_format(node, context);
             let level = node
                 .attrs
                 .as_ref()
@@ -470,6 +517,15 @@ fn write_inline(node: &PmNode, output: &mut String, context: &mut WriteContext) 
                             .unwrap_or_default();
                         rendered = format!("[{rendered}]({href})");
                     }
+                    "textStyle" => context
+                        .warnings
+                        .warn("Шрифт, размер и цвет текста не сохраняются в Markdown."),
+                    "highlight" => context
+                        .warnings
+                        .warn("Выделение цветом не сохраняется в Markdown."),
+                    "underline" => context
+                        .warnings
+                        .warn("Подчёркивание не сохраняется в Markdown."),
                     other => context.warnings.warn(format!(
                         "Разметка «{other}» не поддерживается Markdown и была упрощена."
                     )),
@@ -774,6 +830,63 @@ mod tests {
 
         let restored = read(&written.text);
         assert_eq!(restored.document, imported.document);
+    }
+
+    #[test]
+    fn warns_about_paragraph_formatting() {
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode {
+                attrs: Some(json!({
+                    "textAlign": "center",
+                    "indent": 1,
+                    "lineHeight": "1.5"
+                })),
+                ..PmNode::with_content("paragraph", vec![PmNode::text("текст")])
+            }],
+        };
+
+        let written = write(&document);
+
+        assert!(written.text.contains("текст"));
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Выравнивание")));
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Отступы")));
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Интервалы")));
+    }
+
+    #[test]
+    fn warns_about_text_style_mark() {
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode::with_content(
+                "paragraph",
+                vec![PmNode {
+                    marks: vec![PmMark {
+                        attrs: Some(json!({ "fontSize": "14pt" })),
+                        ..PmMark::new("textStyle")
+                    }],
+                    ..PmNode::text("текст")
+                }],
+            )],
+        };
+
+        let written = write(&document);
+
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Шрифт")));
     }
 
     #[test]

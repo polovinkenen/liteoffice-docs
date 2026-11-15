@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEditorState } from "@tiptap/react";
 import DocumentTabBar from "../features/tabs/DocumentTabBar";
 import type { DocumentWorkspace } from "../features/tabs/useDocumentWorkspace";
 import { countWords } from "../lib/document";
@@ -16,7 +17,12 @@ interface EditorProps {
 export default function Editor({ workspace }: EditorProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>("home");
   const editor = workspace.activeEditor;
-  const words = countWords(editor?.getText() ?? "");
+  const words =
+    useEditorState({
+      editor,
+      selector: ({ editor: current }) =>
+        current ? countWords(current.getText()) : 0,
+    }) ?? 0;
 
   return (
     <section className="editor">

@@ -92,3 +92,71 @@ export function DeleteTableIcon() {
     </Icon>
   );
 }
+
+export function AlignLeftIcon() {
+  return (
+    <Icon>
+      <path d="M4 6h16M4 10h10M4 14h16M4 18h10" />
+    </Icon>
+  );
+}
+
+export function AlignCenterIcon() {
+  return (
+    <Icon>
+      <path d="M4 6h16M7 10h10M4 14h16M7 18h10" />
+    </Icon>
+  );
+}
+
+export function AlignRightIcon() {
+  return (
+    <Icon>
+      <path d="M4 6h16M10 10h10M4 14h16M10 18h10" />
+    </Icon>
+  );
+}
+
+export function AlignJustifyIcon() {
+  return (
+    <Icon>
+      <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+    </Icon>
+  );
+}
+
+export function IndentIcon() {
+  return (
+    <Icon>
+      <path d="M3 6h18M3 10h8M3 14h18M3 18h8" />
+      <path d="m9 8-2 2 2 2" />
+    </Icon>
+  );
+}
+
+export function OutdentIcon() {
+  return (
+    <Icon>
+      <path d="M3 6h18M3 10h8M3 14h18M3 18h8" />
+      <path d="m7 8 2 2-2 2" />
+    </Icon>
+  );
+}
+
+export function LinkIcon() {
+  return (
+    <Icon>
+      <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+      <path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
+    </Icon>
+  );
+}
+
+export function HighlightIcon() {
+  return (
+    <Icon>
+      <path d="m9 4 6 6-7 7H4v-4z" />
+      <path d="m14 9 3-3" />
+    </Icon>
+  );
+}
