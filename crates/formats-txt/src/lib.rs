@@ -107,7 +107,7 @@ fn block_text(node: &PmNode) -> String {
         "bulletList" => list_text(node, false, 0),
         "orderedList" => list_text(node, true, 0),
         "table" => table_text(node),
-        "horizontalRule" => "---".to_owned(),
+        "pageBreak" | "horizontalRule" => "---".to_owned(),
         "image" => image_alt(node),
         _ => node_text(node),
     }

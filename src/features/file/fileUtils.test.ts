@@ -58,11 +58,17 @@ describe("hasFormatting", () => {
     ).toBe(true);
   });
 
-  it("распознаёт структурные узлы", () => {
+  it("распознаёт структурные узлы и разрыв страницы", () => {
     expect(
       hasFormatting({
         type: "doc",
         content: [{ type: "heading", attrs: { level: 1 }, content: [] }],
+      }),
+    ).toBe(true);
+    expect(
+      hasFormatting({
+        type: "doc",
+        content: [{ type: "pageBreak" }],
       }),
     ).toBe(true);
   });

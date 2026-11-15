@@ -5,7 +5,8 @@ import { loadImage } from "../file/fileApi";
 
 export interface InsertActions {
   insertImage: () => Promise<void>;
-  insertTable: () => void;
+  insertTable: (rows: number, cols: number) => void;
+  insertPageBreak: () => void;
 }
 
 export function useInsertActions(
@@ -39,7 +40,22 @@ export function useInsertActions(
     }
   }, [editor, onError]);
 
-  const insertTable = useCallback(() => {
+  const insertTable = useCallback(
+    (rows: number, cols: number) => {
+      if (!editor) {
+        return;
+      }
+
+      editor
+        .chain()
+        .focus()
+        .insertTable({ rows, cols, withHeaderRow: true })
+        .run();
+    },
+    [editor],
+  );
+
+  const insertPageBreak = useCallback(() => {
     if (!editor) {
       return;
     }
@@ -47,9 +63,9 @@ export function useInsertActions(
     editor
       .chain()
       .focus()
-      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .insertContent([{ type: "pageBreak" }, { type: "paragraph" }])
       .run();
   }, [editor]);
 
-  return { insertImage, insertTable };
+  return { insertImage, insertTable, insertPageBreak };
 }

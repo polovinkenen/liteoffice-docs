@@ -21,6 +21,7 @@ const FORMATTING_TYPES = new Set([
   "tableHeader",
   "horizontalRule",
   "image",
+  "pageBreak",
 ]);
 
 export function formatFromPath(path: string): DocumentFormat | null {

@@ -21,12 +21,29 @@ export const ru = {
     ready: "Готово",
     core: "Ядро",
   },
-  actions: {
-    insertGroup: "Вставка",
-    image: "Изображение…",
+  tabs: {
+    label: "Разделы редактора",
+    home: "Главная",
+    insert: "Вставка",
+  },
+  insert: {
+    image: "Изображение",
     imageTitle: "Вставить изображение",
     table: "Таблица",
-    tableTitle: "Вставить таблицу 3×3",
+    tableTitle: "Вставить таблицу",
+    pageBreak: "Разделитель страниц",
+    pageBreakTitle: "Вставить разрыв страницы",
+  },
+  table: {
+    label: "Таблица",
+    controls: "Управление таблицей",
+    addColumn: "+ столбец",
+    removeColumn: "− столбец",
+    addRow: "+ строка",
+    removeRow: "− строка",
+    deleteTable: "Удалить",
+    sizeLabel: "Размер таблицы",
+    sizeHint: "Выберите размер",
   },
   file: {
     unsaved: "не сохранено",

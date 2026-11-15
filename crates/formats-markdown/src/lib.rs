@@ -113,9 +113,13 @@ fn convert_block<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> Vec<P
         NodeValue::List(list) => vec![convert_list(node, &list, warnings)],
         NodeValue::Table(_) => vec![convert_table(node, warnings)],
         NodeValue::ThematicBreak => vec![block_node("horizontalRule")],
-        NodeValue::HtmlBlock(_) => {
-            warnings.warn("HTML-блоки не поддерживаются и были пропущены.");
-            Vec::new()
+        NodeValue::HtmlBlock(block) => {
+            if block.literal.trim() == "<!-- pagebreak -->" {
+                vec![block_node("pageBreak")]
+            } else {
+                warnings.warn("HTML-блоки не поддерживаются и были пропущены.");
+                Vec::new()
+            }
         }
         NodeValue::FootnoteDefinition(_) => {
             warnings.warn("Сноски не поддерживаются и были пропущены.");
@@ -417,6 +421,7 @@ fn write_block(node: &PmNode, output: &mut String, indent: usize, context: &mut 
         "bulletList" => write_list(node, output, false, indent, context),
         "orderedList" => write_list(node, output, true, indent, context),
         "table" => write_table(node, output, context),
+        "pageBreak" => output.push_str("<!-- pagebreak -->\n\n"),
         "horizontalRule" => output.push_str("---\n\n"),
         "image" => {
             output.push_str(&image_markdown(node));
@@ -752,6 +757,35 @@ mod tests {
 
         assert_eq!(imported.warnings.len(), 1);
         assert!(node_text(&imported.document.content[0]).contains("жир"));
+    }
+
+    #[test]
+    fn imports_and_exports_page_break_marker() {
+        let imported = read("до\n\n<!-- pagebreak -->\n\nпосле\n");
+
+        assert_eq!(
+            types(&imported.document),
+            vec!["paragraph", "pageBreak", "paragraph"]
+        );
+        assert!(imported.warnings.is_empty());
+
+        let written = write(&imported.document);
+        assert!(written.text.contains("<!-- pagebreak -->"));
+
+        let restored = read(&written.text);
+        assert_eq!(restored.document, imported.document);
+    }
+
+    #[test]
+    fn warns_about_other_html_blocks() {
+        let imported = read("<div>блок</div>\n");
+
+        assert_eq!(imported.warnings.len(), 1);
+        assert!(imported
+            .document
+            .content
+            .iter()
+            .all(|node| node.node_type != "pageBreak"));
     }
 
     #[test]
