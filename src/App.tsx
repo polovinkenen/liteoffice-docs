@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import Editor from "./editor/Editor";
+import { useDocumentEditor } from "./editor/useDocumentEditor";
+import FileActions from "./features/file/FileActions";
+import FileBanner from "./features/file/FileBanner";
+import { useFileSession } from "./features/file/useFileSession";
 import { ru } from "./i18n/ru";
 import { fetchAppInfo, type AppInfo } from "./lib/tauri";
 
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [bridgeChecked, setBridgeChecked] = useState(false);
+  const editor = useDocumentEditor();
+  const file = useFileSession(editor);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +29,8 @@ export default function App() {
     };
   }, []);
 
+  const documentName = file.path ? file.fileName : ru.untitled;
+
   return (
     <div className="app">
       <header className="titlebar">
@@ -32,9 +40,13 @@ export default function App() {
           </span>
           <div>
             <h1>{ru.appName}</h1>
-            <p>{ru.untitled}</p>
+            <p>
+              {documentName}
+              {file.dirty ? ` · ${ru.file.unsaved}` : ""}
+            </p>
           </div>
         </div>
+        <FileActions session={file} disabled={!editor} />
         <div className="runtime">
           {bridgeChecked && !appInfo ? (
             <span className="runtime-badge runtime-badge--warn">
@@ -50,7 +62,8 @@ export default function App() {
         </div>
       </header>
       <main className="workspace">
-        <Editor />
+        <FileBanner session={file} />
+        <Editor editor={editor} />
       </main>
     </div>
   );

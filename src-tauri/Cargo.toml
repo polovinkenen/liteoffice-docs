@@ -27,3 +27,7 @@ tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wordlite-app-core = { path = "../crates/app-core" }
 wordlite-docmodel = { path = "../crates/docmodel" }
+wordlite-formats = { path = "../crates/formats" }
+
+[dev-dependencies]
+tempfile.workspace = true

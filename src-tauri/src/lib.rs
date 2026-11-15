@@ -24,7 +24,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::ping,
             commands::app_info,
-            commands::validate_document
+            commands::validate_document,
+            commands::document::open_document,
+            commands::document::save_document
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить Wordlite");

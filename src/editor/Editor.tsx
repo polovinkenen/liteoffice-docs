@@ -1,23 +1,13 @@
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { countWords, createEmptyDoc } from "../lib/document";
+import { EditorContent, type Editor as TiptapEditor } from "@tiptap/react";
+import { countWords } from "../lib/document";
 import { ru } from "../i18n/ru";
 import Toolbar from "./Toolbar";
 
-export default function Editor() {
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: createEmptyDoc(),
-    shouldRerenderOnTransaction: true,
-    editorProps: {
-      attributes: {
-        class: "document-body",
-        spellcheck: "true",
-        "aria-label": "Текст документа",
-      },
-    },
-  });
+interface EditorProps {
+  editor: TiptapEditor | null;
+}
 
+export default function Editor({ editor }: EditorProps) {
   const words = countWords(editor?.getText() ?? "");
 
   return (

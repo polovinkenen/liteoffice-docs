@@ -1,3 +1,5 @@
+pub mod files;
+
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 
@@ -9,6 +11,14 @@ pub enum AppError {
     Io(#[from] std::io::Error),
     #[error("некорректный документ: {0}")]
     InvalidDocument(String),
+    #[error("файл слишком большой: {path} ({size} байт, максимум {max_bytes})")]
+    FileTooLarge {
+        path: String,
+        size: u64,
+        max_bytes: u64,
+    },
+    #[error("внутренняя ошибка: {0}")]
+    Internal(String),
 }
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -19,6 +29,8 @@ impl AppError {
             Self::UnsupportedFormat(_) => "unsupported_format",
             Self::Io(_) => "io_error",
             Self::InvalidDocument(_) => "invalid_document",
+            Self::FileTooLarge { .. } => "file_too_large",
+            Self::Internal(_) => "internal_error",
         }
     }
 }

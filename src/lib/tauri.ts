@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+
 export interface AppInfo {
   name: string;
   version: string;
@@ -7,7 +9,6 @@ export interface AppInfo {
 
 export async function fetchAppInfo(): Promise<AppInfo | null> {
   try {
-    const { invoke } = await import("@tauri-apps/api/core");
     return await invoke<AppInfo>("app_info");
   } catch {
     return null;

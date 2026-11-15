@@ -21,4 +21,16 @@ export const ru = {
     ready: "Готово",
     core: "Ядро",
   },
+  file: {
+    open: "Открыть",
+    save: "Сохранить",
+    saveAs: "Сохранить как",
+    openTitle: "Открыть (Cmd/Ctrl+O)",
+    saveTitle: "Сохранить (Cmd/Ctrl+S)",
+    saveAsTitle: "Сохранить как (Cmd/Ctrl+Shift+S)",
+    unsaved: "не сохранено",
+    error: "Ошибка",
+    warnings: "Замечания",
+    dismiss: "Скрыть",
+  },
 } as const;

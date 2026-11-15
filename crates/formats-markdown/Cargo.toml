@@ -1,0 +1,13 @@
+[package]
+name = "wordlite-formats-markdown"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Импорт и экспорт Markdown (GFM) для Wordlite"
+
+[dependencies]
+comrak = { version = "0.59", default-features = false }
+serde_json.workspace = true
+wordlite-docmodel = { path = "../docmodel" }
+wordlite-formats-core = { path = "../formats-core" }

@@ -1,3 +1,5 @@
+pub mod document;
+
 use serde::Serialize;
 use wordlite_app_core::{AppError, AppResult};
 use wordlite_docmodel::PmDoc;
