@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import type { Editor } from "@tiptap/react";
+import { isTauri } from "../../lib/tauri";
 import {
   confirmDiscardChanges,
+  confirmQuit,
   confirmTxtLoss,
   pickOpenPath,
   pickSavePath,
 } from "./dialogs";
-import { errorMessage, openDocument, saveDocument } from "./fileApi";
+import {
+  errorMessage,
+  openDocument,
+  quitApp,
+  saveDocument,
+  setDocumentDirty,
+} from "./fileApi";
 import {
   basename,
   documentTitle,
@@ -14,6 +23,7 @@ import {
   hasFormatting,
   type DocumentFormat,
 } from "./fileUtils";
+import { MENU_EVENT } from "./menuEvents";
 
 export interface FileSession {
   path: string | null;
@@ -27,6 +37,7 @@ export interface FileSession {
   open: () => Promise<void>;
   save: () => Promise<void>;
   saveAs: () => Promise<void>;
+  reportError: (cause: unknown) => void;
   dismissMessages: () => void;
 }
 
@@ -39,12 +50,18 @@ export function useFileSession(editor: Editor | null): FileSession {
   const [warnings, setWarnings] = useState<string[]>([]);
 
   const dirtyRef = useRef(false);
+  const busyRef = useRef(false);
   const pathRef = useRef<string | null>(null);
   const formatRef = useRef<DocumentFormat | null>(null);
 
   const updateDirty = useCallback((value: boolean) => {
     dirtyRef.current = value;
     setDirty(value);
+  }, []);
+
+  const updateBusy = useCallback((value: boolean) => {
+    busyRef.current = value;
+    setBusy(value);
   }, []);
 
   const updatePath = useCallback((value: string | null) => {
@@ -70,14 +87,21 @@ export function useFileSession(editor: Editor | null): FileSession {
     };
   }, [editor, updateDirty]);
 
+  useEffect(() => {
+    if (!isTauri()) {
+      return;
+    }
+
+    void setDocumentDirty(dirty).catch((cause: unknown) => {
+      console.error(cause);
+    });
+  }, [dirty]);
+
   const load = useCallback(
     async (target: string) => {
       if (!editor) {
         return;
       }
-
-      setBusy(true);
-      setError(null);
 
       try {
         const opened = await openDocument(target);
@@ -88,17 +112,18 @@ export function useFileSession(editor: Editor | null): FileSession {
         setWarnings(opened.warnings);
       } catch (cause) {
         setError(errorMessage(cause));
-      } finally {
-        setBusy(false);
       }
     },
     [editor, updateDirty, updateFormat, updatePath],
   );
 
   const open = useCallback(async () => {
-    if (!editor) {
+    if (!editor || busyRef.current) {
       return;
     }
+
+    updateBusy(true);
+    setError(null);
 
     try {
       if (dirtyRef.current && !(await confirmDiscardChanges())) {
@@ -112,17 +137,16 @@ export function useFileSession(editor: Editor | null): FileSession {
       }
     } catch (cause) {
       setError(errorMessage(cause));
+    } finally {
+      updateBusy(false);
     }
-  }, [editor, load]);
+  }, [editor, load, updateBusy]);
 
   const saveTo = useCallback(
     async (target: string) => {
       if (!editor) {
         return;
       }
-
-      setBusy(true);
-      setError(null);
 
       try {
         const saved = await saveDocument(target, editor.getJSON());
@@ -132,17 +156,18 @@ export function useFileSession(editor: Editor | null): FileSession {
         setWarnings(saved.warnings);
       } catch (cause) {
         setError(errorMessage(cause));
-      } finally {
-        setBusy(false);
       }
     },
     [editor, updateDirty, updateFormat, updatePath],
   );
 
   const save = useCallback(async () => {
-    if (!editor) {
+    if (!editor || busyRef.current) {
       return;
     }
+
+    updateBusy(true);
+    setError(null);
 
     try {
       let target = pathRef.current;
@@ -166,13 +191,18 @@ export function useFileSession(editor: Editor | null): FileSession {
       await saveTo(target);
     } catch (cause) {
       setError(errorMessage(cause));
+    } finally {
+      updateBusy(false);
     }
-  }, [editor, saveTo]);
+  }, [editor, saveTo, updateBusy]);
 
   const saveAs = useCallback(async () => {
-    if (!editor) {
+    if (!editor || busyRef.current) {
       return;
     }
+
+    updateBusy(true);
+    setError(null);
 
     try {
       const target = await pickSavePath(pathRef.current, formatRef.current);
@@ -192,8 +222,30 @@ export function useFileSession(editor: Editor | null): FileSession {
       await saveTo(target);
     } catch (cause) {
       setError(errorMessage(cause));
+    } finally {
+      updateBusy(false);
     }
-  }, [editor, saveTo]);
+  }, [editor, saveTo, updateBusy]);
+
+  const handleQuit = useCallback(async () => {
+    if (busyRef.current) {
+      return;
+    }
+
+    try {
+      if (dirtyRef.current && !(await confirmQuit())) {
+        return;
+      }
+
+      await quitApp();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    }
+  }, []);
+
+  const reportError = useCallback((cause: unknown) => {
+    setError(errorMessage(cause));
+  }, []);
 
   const dismissMessages = useCallback(() => {
     setError(null);
@@ -211,6 +263,48 @@ export function useFileSession(editor: Editor | null): FileSession {
   }, [title]);
 
   useEffect(() => {
+    if (!isTauri()) {
+      return;
+    }
+
+    let disposed = false;
+    let stops: Array<() => void> = [];
+
+    void (async () => {
+      try {
+        const listeners = await Promise.all([
+          listen(MENU_EVENT.open, () => void open()),
+          listen(MENU_EVENT.save, () => void save()),
+          listen(MENU_EVENT.saveAs, () => void saveAs()),
+          listen(MENU_EVENT.printFallback, () => {
+            window.getSelection()?.removeAllRanges();
+            window.print();
+          }),
+          listen(MENU_EVENT.quit, () => void handleQuit()),
+          listen(MENU_EVENT.quitRequested, () => void handleQuit()),
+        ]);
+
+        if (disposed) {
+          listeners.forEach((stop) => stop());
+        } else {
+          stops = listeners;
+        }
+      } catch (cause) {
+        console.error(cause);
+      }
+    })();
+
+    return () => {
+      disposed = true;
+      stops.forEach((stop) => stop());
+    };
+  }, [open, save, saveAs, handleQuit]);
+
+  useEffect(() => {
+    if (isTauri()) {
+      return;
+    }
+
     const handler = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey) || event.altKey) {
         return;
@@ -259,6 +353,8 @@ export function useFileSession(editor: Editor | null): FileSession {
 
           try {
             if (await confirmDiscardChanges()) {
+              updateDirty(false);
+              await setDocumentDirty(false).catch(() => undefined);
               await window.destroy();
             }
           } catch (cause) {
@@ -278,7 +374,7 @@ export function useFileSession(editor: Editor | null): FileSession {
       disposed = true;
       unlisten?.();
     };
-  }, []);
+  }, [updateDirty]);
 
   return {
     path,
@@ -292,6 +388,7 @@ export function useFileSession(editor: Editor | null): FileSession {
     open,
     save,
     saveAs,
+    reportError,
     dismissMessages,
   };
 }

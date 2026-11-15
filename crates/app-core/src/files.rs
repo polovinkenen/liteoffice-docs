@@ -7,7 +7,7 @@ use crate::{AppError, AppResult};
 
 pub const MAX_TEXT_FILE_BYTES: u64 = 50 * 1024 * 1024;
 
-pub fn read_text(path: &Path, max_bytes: u64) -> AppResult<String> {
+pub fn read_bytes(path: &Path, max_bytes: u64) -> AppResult<Vec<u8>> {
     let metadata = std::fs::metadata(path)?;
 
     if metadata.len() > max_bytes {
@@ -18,7 +18,11 @@ pub fn read_text(path: &Path, max_bytes: u64) -> AppResult<String> {
         });
     }
 
-    let bytes = std::fs::read(path)?;
+    Ok(std::fs::read(path)?)
+}
+
+pub fn read_text(path: &Path, max_bytes: u64) -> AppResult<String> {
+    let bytes = read_bytes(path, max_bytes)?;
     let text = String::from_utf8(bytes).map_err(|_| {
         AppError::InvalidDocument(format!(
             "файл {} должен быть в кодировке UTF-8",

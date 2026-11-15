@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import Editor from "./editor/Editor";
 import { useDocumentEditor } from "./editor/useDocumentEditor";
-import FileActions from "./features/file/FileActions";
 import FileBanner from "./features/file/FileBanner";
 import { useFileSession } from "./features/file/useFileSession";
 import { ru } from "./i18n/ru";
@@ -46,7 +45,6 @@ export default function App() {
             </p>
           </div>
         </div>
-        <FileActions session={file} disabled={!editor} />
         <div className="runtime">
           {bridgeChecked && !appInfo ? (
             <span className="runtime-badge runtime-badge--warn">
@@ -63,7 +61,7 @@ export default function App() {
       </header>
       <main className="workspace">
         <FileBanner session={file} />
-        <Editor editor={editor} />
+        <Editor editor={editor} onError={file.reportError} />
       </main>
     </div>
   );

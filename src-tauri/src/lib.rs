@@ -1,6 +1,15 @@
 mod commands;
+mod menu;
 
-use tauri::Manager;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use tauri::{Emitter, Manager, RunEvent};
+
+#[derive(Default)]
+pub struct AppState {
+    pub dirty: AtomicBool,
+    pub allow_exit: AtomicBool,
+}
 
 pub fn run() {
     tracing_subscriber::fmt()
@@ -10,7 +19,8 @@ pub fn run() {
         )
         .init();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        .manage(AppState::default())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_focus();
@@ -21,13 +31,37 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let app_menu = menu::build_menu(app.handle())?;
+            app.set_menu(app_menu)?;
+            app.on_menu_event(menu::handle_menu_event);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::ping,
             commands::app_info,
             commands::validate_document,
+            commands::set_document_dirty,
+            commands::quit_app,
             commands::document::open_document,
-            commands::document::save_document
+            commands::document::save_document,
+            commands::image::load_image
         ])
-        .run(tauri::generate_context!())
-        .expect("не удалось запустить Wordlite");
+        .build(tauri::generate_context!())
+        .expect("не удалось собрать Wordlite");
+
+    app.run(|app_handle, event| {
+        if let RunEvent::ExitRequested { api, code, .. } = event {
+            let state = app_handle.state::<AppState>();
+            let user_requested = code.is_none();
+
+            if user_requested
+                && state.dirty.load(Ordering::SeqCst)
+                && !state.allow_exit.load(Ordering::SeqCst)
+            {
+                api.prevent_exit();
+                let _ = app_handle.emit(menu::EVENT_APP_QUIT_REQUESTED, ());
+            }
+        }
+    });
 }

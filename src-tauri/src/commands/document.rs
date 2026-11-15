@@ -6,6 +6,8 @@ use wordlite_app_core::{AppError, AppResult};
 use wordlite_docmodel::PmDoc;
 use wordlite_formats::{codec_for, DocumentFormat};
 
+use super::run_blocking;
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenedDocument {
@@ -34,16 +36,6 @@ pub async fn save_document(path: String, document: serde_json::Value) -> AppResu
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
 
     run_blocking(move || save_document_sync(path, document)).await
-}
-
-async fn run_blocking<T, F>(task: F) -> AppResult<T>
-where
-    T: Send + 'static,
-    F: FnOnce() -> AppResult<T> + Send + 'static,
-{
-    tauri::async_runtime::spawn_blocking(task)
-        .await
-        .map_err(|error| AppError::Internal(format!("фоновый поток завершился: {error}")))?
 }
 
 pub(crate) fn open_document_sync(path: String) -> AppResult<OpenedDocument> {

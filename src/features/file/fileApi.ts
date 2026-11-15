@@ -15,6 +15,12 @@ export interface SavedDocument {
   warnings: string[];
 }
 
+export interface LoadedImage {
+  dataUrl: string;
+  name: string;
+  alt: string;
+}
+
 export function openDocument(path: string): Promise<OpenedDocument> {
   return invoke<OpenedDocument>("open_document", { path });
 }
@@ -24,6 +30,18 @@ export function saveDocument(
   document: JSONContent,
 ): Promise<SavedDocument> {
   return invoke<SavedDocument>("save_document", { path, document });
+}
+
+export function loadImage(path: string): Promise<LoadedImage> {
+  return invoke<LoadedImage>("load_image", { path });
+}
+
+export function setDocumentDirty(dirty: boolean): Promise<void> {
+  return invoke("set_document_dirty", { dirty });
+}
+
+export function quitApp(): Promise<void> {
+  return invoke("quit_app");
 }
 
 export function errorMessage(error: unknown): string {

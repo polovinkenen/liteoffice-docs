@@ -60,44 +60,7 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.file-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: auto;
-}
 
-.file-button {
-  padding: 6px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.file-button:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.file-button--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #ffffff;
-}
-
-.file-button--primary:hover:not(:disabled) {
-  color: #ffffff;
-  filter: brightness(1.06);
-}
-
-.file-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
 
 .brand {
   display: flex;
@@ -132,6 +95,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 .runtime-badge {
@@ -162,6 +126,67 @@ body {
   max-width: 840px;
   min-height: 100%;
   margin: 0 auto;
+}
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 4px 14px rgba(20, 24, 35, 0.06);
+}
+
+.action-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-group__label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.action-group__buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.action-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .toolbar {
@@ -353,4 +378,101 @@ body {
   height: auto;
   border-radius: 4px;
   vertical-align: middle;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --page: #ffffff;
+    --text: #000000;
+    --muted: #333333;
+    --border: #999999;
+    --accent: #000000;
+    --accent-soft: #eeeeee;
+    --shadow: none;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    background: #ffffff;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  .app,
+  .workspace,
+  .editor {
+    display: block;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    gap: 0;
+  }
+
+  .titlebar,
+  .action-bar,
+  .toolbar,
+  .statusbar,
+  .file-banners,
+  .runtime {
+    display: none !important;
+  }
+
+  .document-surface {
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .document-body {
+    min-height: 0;
+    padding: 0;
+    color: #000000;
+  }
+
+  .document-body h1,
+  .document-body h2,
+  .document-body h3 {
+    break-after: avoid;
+  }
+
+  .document-body img,
+  .document-body tr {
+    break-inside: avoid;
+  }
+
+  .document-body thead {
+    display: table-header-group;
+  }
+
+  .document-body a {
+    color: #000000;
+    text-decoration: underline;
+  }
+
+  .ProseMirror-gapcursor,
+  .ProseMirror-selectednode {
+    display: none !important;
+  }
+
+  ::selection {
+    background: transparent;
+  }
 }

@@ -1,5 +1,12 @@
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
+import { isTauri } from "../../lib/tauri";
 import { ensureExtension, type DocumentFormat } from "./fileUtils";
+
+function ensureTauri(): void {
+  if (!isTauri()) {
+    throw new Error("Файловые операции доступны только в приложении Wordlite");
+  }
+}
 
 const OPEN_FILTERS = [
   {
@@ -19,7 +26,16 @@ const SAVE_FILTERS = [
   },
 ];
 
+const IMAGE_FILTERS = [
+  {
+    name: "Изображения",
+    extensions: ["png", "jpg", "jpeg", "gif", "webp"],
+  },
+];
+
 export async function pickOpenPath(): Promise<string | null> {
+  ensureTauri();
+
   const selected = await open({
     multiple: false,
     directory: false,
@@ -29,10 +45,24 @@ export async function pickOpenPath(): Promise<string | null> {
   return typeof selected === "string" ? selected : null;
 }
 
+export async function pickImagePath(): Promise<string | null> {
+  ensureTauri();
+
+  const selected = await open({
+    multiple: false,
+    directory: false,
+    filters: IMAGE_FILTERS,
+  });
+
+  return typeof selected === "string" ? selected : null;
+}
+
 export async function pickSavePath(
   currentPath: string | null,
   format: DocumentFormat | null,
 ): Promise<string | null> {
+  ensureTauri();
+
   const defaultPath =
     currentPath ?? (format === "txt" ? "Без названия.txt" : "Без названия.md");
 
@@ -55,6 +85,18 @@ export function confirmDiscardChanges(): Promise<boolean> {
     okLabel: "Продолжить",
     cancelLabel: "Отмена",
   });
+}
+
+export function confirmQuit(): Promise<boolean> {
+  return ask(
+    "В документе есть несохранённые изменения. Выйти без сохранения?",
+    {
+      title: "Wordlite",
+      kind: "warning",
+      okLabel: "Выйти",
+      cancelLabel: "Отмена",
+    },
+  );
 }
 
 export function confirmTxtLoss(): Promise<boolean> {
