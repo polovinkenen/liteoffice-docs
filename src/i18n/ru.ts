@@ -21,6 +21,12 @@ export const ru = {
     ready: "Готово",
     core: "Ядро",
   },
+  documents: {
+    label: "Документы",
+    new: "Новый документ",
+    close: "Закрыть документ",
+    unsaved: "Не сохранено",
+  },
   tabs: {
     label: "Разделы редактора",
     home: "Главная",

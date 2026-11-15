@@ -1,38 +1,43 @@
 import { ru } from "../../i18n/ru";
-import type { FileSession } from "./useFileSession";
 
 interface FileBannerProps {
-  session: FileSession;
+  error: string | null;
+  warnings: string[];
+  onDismiss: () => void;
 }
 
-export default function FileBanner({ session }: FileBannerProps) {
-  if (!session.error && session.warnings.length === 0) {
+export default function FileBanner({
+  error,
+  warnings,
+  onDismiss,
+}: FileBannerProps) {
+  if (!error && warnings.length === 0) {
     return null;
   }
 
   return (
     <div className="file-banners">
-      {session.error ? (
+      {error ? (
         <div className="file-banner file-banner--error" role="alert">
           <div className="file-banner__content">
-            <strong>{ru.file.error}:</strong> <span>{session.error}</span>
+            <strong>{ru.file.error}:</strong> <span>{error}</span>
           </div>
           <button
             type="button"
             className="file-banner__dismiss"
-            onClick={session.dismissMessages}
+            onClick={onDismiss}
           >
             {ru.file.dismiss}
           </button>
         </div>
       ) : null}
 
-      {session.warnings.length > 0 ? (
+      {warnings.length > 0 ? (
         <div className="file-banner file-banner--warning" role="status">
           <div className="file-banner__content">
             <strong>{ru.file.warnings}:</strong>
             <ul>
-              {session.warnings.map((warning) => (
+              {warnings.map((warning) => (
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
@@ -40,7 +45,7 @@ export default function FileBanner({ session }: FileBannerProps) {
           <button
             type="button"
             className="file-banner__dismiss"
-            onClick={session.dismissMessages}
+            onClick={onDismiss}
           >
             {ru.file.dismiss}
           </button>

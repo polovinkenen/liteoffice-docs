@@ -33,16 +33,20 @@ const IMAGE_FILTERS = [
   },
 ];
 
-export async function pickOpenPath(): Promise<string | null> {
+export async function pickOpenPaths(): Promise<string[]> {
   ensureTauri();
 
   const selected = await open({
-    multiple: false,
+    multiple: true,
     directory: false,
     filters: OPEN_FILTERS,
   });
 
-  return typeof selected === "string" ? selected : null;
+  if (Array.isArray(selected)) {
+    return selected;
+  }
+
+  return typeof selected === "string" ? [selected] : [];
 }
 
 export async function pickImagePath(): Promise<string | null> {
@@ -78,8 +82,14 @@ export async function pickSavePath(
   return ensureExtension(selected, format ?? "md");
 }
 
-export function confirmDiscardChanges(): Promise<boolean> {
-  return ask("В документе есть несохранённые изменения. Продолжить без сохранения?", {
+export function confirmDiscardChanges(
+  documentName?: string,
+): Promise<boolean> {
+  const message = documentName
+    ? `В документе «${documentName}» есть несохранённые изменения. Продолжить без сохранения?`
+    : "В документе есть несохранённые изменения. Продолжить без сохранения?";
+
+  return ask(message, {
     title: "Wordlite",
     kind: "warning",
     okLabel: "Продолжить",
@@ -87,16 +97,32 @@ export function confirmDiscardChanges(): Promise<boolean> {
   });
 }
 
-export function confirmQuit(): Promise<boolean> {
-  return ask(
-    "В документе есть несохранённые изменения. Выйти без сохранения?",
-    {
-      title: "Wordlite",
-      kind: "warning",
-      okLabel: "Выйти",
-      cancelLabel: "Отмена",
-    },
-  );
+export function confirmDiscardAll(count: number): Promise<boolean> {
+  const message =
+    count > 1
+      ? `Есть несохранённые изменения в ${count} документах. Закрыть без сохранения?`
+      : "В документе есть несохранённые изменения. Закрыть без сохранения?";
+
+  return ask(message, {
+    title: "Wordlite",
+    kind: "warning",
+    okLabel: "Закрыть",
+    cancelLabel: "Отмена",
+  });
+}
+
+export function confirmQuit(count = 1): Promise<boolean> {
+  const message =
+    count > 1
+      ? `Есть несохранённые изменения в ${count} документах. Выйти без сохранения?`
+      : "В документе есть несохранённые изменения. Выйти без сохранения?";
+
+  return ask(message, {
+    title: "Wordlite",
+    kind: "warning",
+    okLabel: "Выйти",
+    cancelLabel: "Отмена",
+  });
 }
 
 export function confirmTxtLoss(): Promise<boolean> {

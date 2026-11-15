@@ -41,7 +41,8 @@ pub async fn save_document(path: String, document: serde_json::Value) -> AppResu
 pub(crate) fn open_document_sync(path: String) -> AppResult<OpenedDocument> {
     let path_buf = PathBuf::from(&path);
     let format = format_for(&path_buf)?;
-    let source = read_text(&path_buf, MAX_TEXT_FILE_BYTES)?;
+    let canonical = path_buf.canonicalize().unwrap_or_else(|_| path_buf.clone());
+    let source = read_text(&canonical, MAX_TEXT_FILE_BYTES)?;
     let imported = codec_for(format)
         .read(&source)
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
@@ -52,14 +53,14 @@ pub(crate) fn open_document_sync(path: String) -> AppResult<OpenedDocument> {
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
 
     tracing::info!(
-        path = %path_buf.display(),
+        path = %canonical.display(),
         format = format.id(),
         warnings = imported.warnings.len(),
         "документ открыт"
     );
 
     Ok(OpenedDocument {
-        path,
+        path: canonical.to_string_lossy().into_owned(),
         format: format.id().to_owned(),
         document: imported.document,
         warnings: imported.warnings,

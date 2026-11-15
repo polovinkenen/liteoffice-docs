@@ -1,15 +1,21 @@
 use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItemBuilder, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
+pub const FILE_NEW: &str = "file.new";
 pub const FILE_OPEN: &str = "file.open";
 pub const FILE_SAVE: &str = "file.save";
 pub const FILE_SAVE_AS: &str = "file.save-as";
 pub const FILE_PRINT: &str = "file.print";
+pub const FILE_CLOSE_DOCUMENT: &str = "file.close-document";
+pub const FILE_CLOSE_WINDOW: &str = "file.close-window";
 pub const APP_QUIT: &str = "app.quit";
 
+pub const EVENT_FILE_NEW: &str = "menu:file:new";
 pub const EVENT_FILE_OPEN: &str = "menu:file:open";
 pub const EVENT_FILE_SAVE: &str = "menu:file:save";
 pub const EVENT_FILE_SAVE_AS: &str = "menu:file:save-as";
+pub const EVENT_FILE_CLOSE_DOCUMENT: &str = "menu:file:close-document";
+pub const EVENT_FILE_CLOSE_WINDOW: &str = "menu:file:close-window";
 pub const EVENT_FILE_PRINT_FALLBACK: &str = "menu:file:print-fallback";
 pub const EVENT_APP_QUIT: &str = "menu:app:quit";
 pub const EVENT_APP_QUIT_REQUESTED: &str = "menu:app:quit-requested";
@@ -21,6 +27,9 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
 
     let app_menu = build_app_submenu(app, &quit)?;
 
+    let new_document = MenuItemBuilder::with_id(FILE_NEW, "Новый")
+        .accelerator("CmdOrCtrl+N")
+        .build(app)?;
     let open = MenuItemBuilder::with_id(FILE_OPEN, "Открыть…")
         .accelerator("CmdOrCtrl+O")
         .build(app)?;
@@ -33,8 +42,15 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let print = MenuItemBuilder::with_id(FILE_PRINT, "Печать…")
         .accelerator("CmdOrCtrl+P")
         .build(app)?;
+    let close_document = MenuItemBuilder::with_id(FILE_CLOSE_DOCUMENT, "Закрыть документ")
+        .accelerator("CmdOrCtrl+W")
+        .build(app)?;
+    let close_window = MenuItemBuilder::with_id(FILE_CLOSE_WINDOW, "Закрыть окно")
+        .accelerator("CmdOrCtrl+Shift+W")
+        .build(app)?;
 
     let file_menu = SubmenuBuilder::new(app, "Файл")
+        .item(&new_document)
         .item(&open)
         .separator()
         .item(&save)
@@ -42,7 +58,8 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .separator()
         .item(&print)
         .separator()
-        .close_window_with_text("Закрыть окно")
+        .item(&close_document)
+        .item(&close_window)
         .build()?;
 
     let window_menu = SubmenuBuilder::new(app, "Окно")
@@ -80,9 +97,12 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
     }
 
     let event_name = match event.id().as_ref() {
+        FILE_NEW => EVENT_FILE_NEW,
         FILE_OPEN => EVENT_FILE_OPEN,
         FILE_SAVE => EVENT_FILE_SAVE,
         FILE_SAVE_AS => EVENT_FILE_SAVE_AS,
+        FILE_CLOSE_DOCUMENT => EVENT_FILE_CLOSE_DOCUMENT,
+        FILE_CLOSE_WINDOW => EVENT_FILE_CLOSE_WINDOW,
         APP_QUIT => EVENT_APP_QUIT,
         _ => return,
     };

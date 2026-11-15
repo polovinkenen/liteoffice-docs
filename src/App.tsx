@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import Editor from "./editor/Editor";
-import { useDocumentEditor } from "./editor/useDocumentEditor";
 import FileBanner from "./features/file/FileBanner";
-import { useFileSession } from "./features/file/useFileSession";
+import { useDocumentWorkspace } from "./features/tabs/useDocumentWorkspace";
 import { ru } from "./i18n/ru";
 import { fetchAppInfo, type AppInfo } from "./lib/tauri";
 
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [bridgeChecked, setBridgeChecked] = useState(false);
-  const editor = useDocumentEditor();
-  const file = useFileSession(editor);
+  const workspace = useDocumentWorkspace();
+  const active = workspace.activeTab;
 
   useEffect(() => {
     let cancelled = false;
@@ -28,8 +27,6 @@ export default function App() {
     };
   }, []);
 
-  const documentName = file.path ? file.fileName : ru.untitled;
-
   return (
     <div className="app">
       <header className="titlebar">
@@ -40,8 +37,8 @@ export default function App() {
           <div>
             <h1>{ru.appName}</h1>
             <p>
-              {documentName}
-              {file.dirty ? ` · ${ru.file.unsaved}` : ""}
+              {active.fileName}
+              {active.dirty ? ` · ${ru.file.unsaved}` : ""}
             </p>
           </div>
         </div>
@@ -60,8 +57,12 @@ export default function App() {
         </div>
       </header>
       <main className="workspace">
-        <FileBanner session={file} />
-        <Editor editor={editor} onError={file.reportError} />
+        <FileBanner
+          error={active.error}
+          warnings={active.warnings}
+          onDismiss={workspace.dismissMessages}
+        />
+        <Editor workspace={workspace} />
       </main>
     </div>
   );
