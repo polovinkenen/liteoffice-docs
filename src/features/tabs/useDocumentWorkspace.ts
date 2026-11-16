@@ -3,9 +3,20 @@ import { listen } from "@tauri-apps/api/event";
 import type { Editor } from "@tiptap/react";
 import { isTauri } from "../../lib/tauri";
 import {
+  clearAutosaves,
+  discardAutosave,
+  listAutosaves,
+  restoreAutosave,
+  saveAutosave,
+  type AutosaveRecord,
+} from "../autosave/autosaveApi";
+import { createDebouncer } from "../autosave/debouncer";
+import { restoredTabs } from "../autosave/session";
+import {
   confirmDiscardAll,
   confirmDiscardChanges,
   confirmQuit,
+  confirmRestoreSession,
   confirmTxtLoss,
   pickOpenPaths,
   pickSavePath,
@@ -53,6 +64,8 @@ export interface DocumentWorkspace {
   markDirty: (id: string) => void;
 }
 
+const AUTOSAVE_DEBOUNCE_MS = 1500;
+
 interface TabPatch {
   path?: string | null;
   format?: DocumentTab["format"];
@@ -78,7 +91,14 @@ function tabFromOpened(opened: OpenedDocument): DocumentTab {
   };
 }
 
-export function useDocumentWorkspace(): DocumentWorkspace {
+export interface DocumentWorkspaceOptions {
+  autosaveEnabled?: boolean;
+}
+
+export function useDocumentWorkspace(
+  options: DocumentWorkspaceOptions = {},
+): DocumentWorkspace {
+  const autosaveEnabled = options.autosaveEnabled ?? true;
   const [initialTab] = useState(() => createBlankTab(1));
   const [tabs, setTabs] = useState<DocumentTab[]>(() => [initialTab]);
   const [activeId, setActiveId] = useState(initialTab.id);
@@ -124,17 +144,97 @@ export function useDocumentWorkspace(): DocumentWorkspace {
     setEditors(next);
   }, []);
 
+  const autosaveDebouncer = useRef(createDebouncer(AUTOSAVE_DEBOUNCE_MS));
+  const autosaveEnabledRef = useRef(autosaveEnabled);
+  const recoveryStarted = useRef(false);
+
+  useEffect(() => {
+    autosaveEnabledRef.current = autosaveEnabled;
+
+    if (!autosaveEnabled) {
+      autosaveDebouncer.current.cancelAll();
+    }
+  }, [autosaveEnabled]);
+
+  const persistAutosave = useCallback(async (id: string) => {
+    if (!isTauri() || !autosaveEnabledRef.current) {
+      return;
+    }
+
+    const tab = tabsRef.current.find((candidate) => candidate.id === id);
+    const editor = editorsRef.current.get(id);
+
+    if (!tab || !editor || !tab.dirty) {
+      return;
+    }
+
+    try {
+      await saveAutosave({
+        docId: id,
+        path: tab.path,
+        format: tab.format,
+        fileName: tab.fileName,
+        document: editor.getJSON(),
+      });
+    } catch (cause) {
+      console.error("Не удалось сохранить черновик документа", cause);
+    }
+  }, []);
+
+  const scheduleAutosave = useCallback(
+    (id: string) => {
+      if (!isTauri() || !autosaveEnabledRef.current) {
+        return;
+      }
+
+      autosaveDebouncer.current.schedule(id, () => {
+        void persistAutosave(id);
+      });
+    },
+    [persistAutosave],
+  );
+
+  const flushAutosave = useCallback(
+    async (id: string) => {
+      autosaveDebouncer.current.cancel(id);
+      await persistAutosave(id);
+    },
+    [persistAutosave],
+  );
+
+  const flushAllAutosaves = useCallback(async () => {
+    autosaveDebouncer.current.cancelAll();
+    const dirtyTabs = tabsRef.current.filter((tab) => tab.dirty);
+    await Promise.all(dirtyTabs.map((tab) => persistAutosave(tab.id)));
+  }, [persistAutosave]);
+
+  const discardStoredAutosave = useCallback(async (id: string) => {
+    if (!isTauri()) {
+      return;
+    }
+
+    try {
+      await discardAutosave(id);
+    } catch (cause) {
+      console.error("Не удалось удалить автосохранение", cause);
+    }
+  }, []);
+
   const markDirty = useCallback(
     (id: string) => {
       const tab = tabsRef.current.find((candidate) => candidate.id === id);
 
-      if (!tab || tab.dirty) {
+      if (!tab) {
         return;
       }
 
-      patchTab(id, { dirty: true });
+      if (!tab.dirty) {
+        patchTab(id, { dirty: true });
+      }
+
+      scheduleAutosave(id);
     },
-    [patchTab],
+    [patchTab, scheduleAutosave],
   );
 
   const newTab = useCallback(() => {
@@ -254,13 +354,15 @@ export function useDocumentWorkspace(): DocumentWorkspace {
           dirty: false,
           warnings: saved.warnings,
         });
+        autosaveDebouncer.current.cancel(id);
+        await discardStoredAutosave(id);
       } catch (cause) {
         patchTab(id, { error: errorMessage(cause) });
       } finally {
         patchTab(id, { busy: false });
       }
     },
-    [patchTab],
+    [discardStoredAutosave, patchTab],
   );
 
   const save = useCallback(() => saveActive(false), [saveActive]);
@@ -288,6 +390,13 @@ export function useDocumentWorkspace(): DocumentWorkspace {
         }
       }
 
+      if (tab.dirty) {
+        await flushAutosave(targetId);
+      } else {
+        autosaveDebouncer.current.cancel(targetId);
+        void discardStoredAutosave(targetId);
+      }
+
       const nextActive = neighborAfterClose(tabsRef.current, targetId);
       const remaining = tabsRef.current.filter(
         (candidate) => candidate.id !== targetId,
@@ -306,7 +415,7 @@ export function useDocumentWorkspace(): DocumentWorkspace {
         commitActive(nextActive);
       }
     },
-    [commitActive, commitTabs, patchTab],
+    [commitActive, commitTabs, discardStoredAutosave, flushAutosave, patchTab],
   );
 
   const reportError = useCallback(
@@ -328,11 +437,12 @@ export function useDocumentWorkspace(): DocumentWorkspace {
         return;
       }
 
+      await flushAllAutosaves();
       await quitApp();
     } catch (cause) {
       patchTab(activeIdRef.current, { error: errorMessage(cause) });
     }
-  }, [patchTab]);
+  }, [flushAllAutosaves, patchTab]);
 
   const handleCloseWindow = useCallback(async () => {
     try {
@@ -366,6 +476,63 @@ export function useDocumentWorkspace(): DocumentWorkspace {
   }, [activeTitle]);
 
   useEffect(() => {
+    if (!isTauri() || recoveryStarted.current) {
+      return;
+    }
+
+    recoveryStarted.current = true;
+
+    void (async () => {
+      const entries = await listAutosaves().catch((cause: unknown) => {
+        console.error("Не удалось прочитать автосохранения", cause);
+        return null;
+      });
+
+      if (!entries || entries.length === 0) {
+        return;
+      }
+
+      const restore = await confirmRestoreSession(entries.length).catch(
+        (cause: unknown) => {
+          console.error(cause);
+          return false;
+        },
+      );
+
+      if (!restore) {
+        await clearAutosaves().catch((cause: unknown) => {
+          console.error("Не удалось очистить автосохранения", cause);
+        });
+        return;
+      }
+
+      const records: AutosaveRecord[] = [];
+      const errors: string[] = [];
+
+      for (const entry of entries) {
+        try {
+          records.push(await restoreAutosave(entry.docId));
+        } catch (cause) {
+          errors.push(errorMessage(cause));
+        }
+      }
+
+      const restored = restoredTabs(records);
+
+      if (restored.length > 0) {
+        commitTabs(restored);
+        commitActive(restored[0]!.id);
+      }
+
+      if (errors.length > 0) {
+        const target =
+          restored[restored.length - 1]?.id ?? activeIdRef.current;
+        patchTab(target, { error: errors.join("; ") });
+      }
+    })();
+  }, [commitActive, commitTabs, patchTab]);
+
+  useEffect(() => {
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
@@ -383,6 +550,7 @@ export function useDocumentWorkspace(): DocumentWorkspace {
 
           try {
             if (await confirmDiscardAll(dirtyCount)) {
+              await flushAllAutosaves();
               const cleared = tabsRef.current.map((tab) => ({
                 ...tab,
                 dirty: false,
@@ -408,7 +576,7 @@ export function useDocumentWorkspace(): DocumentWorkspace {
       disposed = true;
       unlisten?.();
     };
-  }, [commitTabs]);
+  }, [commitTabs, flushAllAutosaves]);
 
   useEffect(() => {
     if (!isTauri()) {

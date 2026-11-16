@@ -1,7 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { applyInitialTheme } from "./features/settings/model";
 import "./styles.css";
+
+applyInitialTheme();
 
 const rootElement = document.getElementById("root");
 

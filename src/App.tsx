@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Editor from "./editor/Editor";
 import FileBanner from "./features/file/FileBanner";
+import SettingsMenu from "./features/settings/SettingsMenu";
+import { useSettings } from "./features/settings/useSettings";
 import { useDocumentWorkspace } from "./features/tabs/useDocumentWorkspace";
 import { ru } from "./i18n/ru";
 import { fetchAppInfo, type AppInfo } from "./lib/tauri";
@@ -8,7 +10,10 @@ import { fetchAppInfo, type AppInfo } from "./lib/tauri";
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [bridgeChecked, setBridgeChecked] = useState(false);
-  const workspace = useDocumentWorkspace();
+  const settings = useSettings();
+  const workspace = useDocumentWorkspace({
+    autosaveEnabled: settings.settings.autosaveEnabled,
+  });
   const active = workspace.activeTab;
 
   useEffect(() => {
@@ -42,18 +47,21 @@ export default function App() {
             </p>
           </div>
         </div>
-        <div className="runtime">
-          {bridgeChecked && !appInfo ? (
-            <span className="runtime-badge runtime-badge--warn">
-              {ru.browserMode}
-            </span>
-          ) : null}
-          {appInfo ? (
-            <span className="runtime-badge">
-              {ru.status.core} {appInfo.version} · {appInfo.platform}/
-              {appInfo.arch}
-            </span>
-          ) : null}
+        <div className="titlebar-actions">
+          <div className="runtime">
+            {bridgeChecked && !appInfo ? (
+              <span className="runtime-badge runtime-badge--warn">
+                {ru.browserMode}
+              </span>
+            ) : null}
+            {appInfo ? (
+              <span className="runtime-badge">
+                {ru.status.core} {appInfo.version} · {appInfo.platform}/
+                {appInfo.arch}
+              </span>
+            ) : null}
+          </div>
+          <SettingsMenu controller={settings} />
         </div>
       </header>
       <main className="workspace">

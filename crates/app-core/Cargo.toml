@@ -8,8 +8,10 @@ description = "Общие ошибки и типы приложения Wordlite
 
 [dependencies]
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 tempfile.workspace = true
+wordlite-docmodel = { path = "../docmodel" }
 
 [dev-dependencies]
 serde_json.workspace = true

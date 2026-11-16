@@ -1,4 +1,6 @@
+pub mod autosave;
 pub mod files;
+pub mod settings;
 
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -7,6 +9,8 @@ use serde::Serialize;
 pub enum AppError {
     #[error("неподдерживаемый формат: {0}")]
     UnsupportedFormat(String),
+    #[error("некорректный аргумент: {0}")]
+    InvalidArgument(String),
     #[error("ошибка ввода-вывода: {0}")]
     Io(#[from] std::io::Error),
     #[error("некорректный документ: {0}")]
@@ -27,6 +31,7 @@ impl AppError {
     pub fn code(&self) -> &'static str {
         match self {
             Self::UnsupportedFormat(_) => "unsupported_format",
+            Self::InvalidArgument(_) => "invalid_argument",
             Self::Io(_) => "io_error",
             Self::InvalidDocument(_) => "invalid_document",
             Self::FileTooLarge { .. } => "file_too_large",
@@ -69,5 +74,12 @@ mod tests {
 
         assert_eq!(json["code"], "unsupported_format");
         assert_eq!(json["message"], "неподдерживаемый формат: odt");
+    }
+
+    #[test]
+    fn invalid_argument_has_stable_code() {
+        let error = AppError::InvalidArgument("пусто".to_owned());
+
+        assert_eq!(error.code(), "invalid_argument");
     }
 }

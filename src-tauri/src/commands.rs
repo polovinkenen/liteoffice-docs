@@ -1,5 +1,7 @@
+pub mod autosave;
 pub mod document;
 pub mod image;
+pub mod settings;
 
 use std::sync::atomic::Ordering;
 

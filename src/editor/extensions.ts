@@ -6,6 +6,7 @@ import { TextStyleKit } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
 import { PageBreak } from "./extensions/pageBreak";
 import { ParagraphFormat } from "./extensions/paragraphFormat";
+import { SearchHighlight } from "./extensions/searchHighlight";
 
 export function createEditorExtensions() {
   return [
@@ -27,5 +28,6 @@ export function createEditorExtensions() {
       allowBase64: true,
     }),
     PageBreak,
+    SearchHighlight,
   ];
 }

@@ -85,4 +85,43 @@ export const ru = {
     warnings: "Замечания",
     dismiss: "Скрыть",
   },
+  find: {
+    label: "Поиск и замена",
+    findLabel: "Найти",
+    findPlaceholder: "Текст для поиска",
+    replaceLabel: "Заменить на",
+    replacePlaceholder: "Текст замены",
+    next: "Далее",
+    previous: "Назад",
+    replace: "Заменить",
+    replaceAll: "Заменить всё",
+    close: "Закрыть поиск",
+    caseSensitive: "С учётом регистра",
+    wholeWord: "Слово целиком",
+    noMatches: "Совпадений нет",
+    matches: (current: number, total: number) => `${current} из ${total}`,
+    replaced: (count: number) => `Заменено: ${count}`,
+  },
+  autosave: {
+    restoreTitle: "Wordlite",
+    restoreMessage: (count: number) =>
+      count === 1
+        ? "Найден несохранённый документ. Восстановить его?"
+        : `Найдены несохранённые документы (${count}). Восстановить их?`,
+    restoreOk: "Восстановить",
+    restoreCancel: "Не восстанавливать",
+  },
+  settings: {
+    open: "Настройки",
+    title: "Настройки",
+    close: "Закрыть настройки",
+    theme: "Тема",
+    themeSystem: "Системная",
+    themeLight: "Светлая",
+    themeDark: "Тёмная",
+    autosave: "Автосохранение",
+    autosaveHint: "Сохранять черновики через 1,5 секунды после правки",
+    loadError: "Не удалось загрузить настройки",
+    saveError: "Не удалось сохранить настройки",
+  },
 } as const;

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useEditorState } from "@tiptap/react";
+import FindReplaceBar from "../features/findReplace/FindReplaceBar";
+import { useFindReplace } from "../features/findReplace/useFindReplace";
 import DocumentTabBar from "../features/tabs/DocumentTabBar";
 import type { DocumentWorkspace } from "../features/tabs/useDocumentWorkspace";
 import { countWords } from "../lib/document";
@@ -17,6 +19,7 @@ interface EditorProps {
 export default function Editor({ workspace }: EditorProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>("home");
   const editor = workspace.activeEditor;
+  const find = useFindReplace(editor);
   const words =
     useEditorState({
       editor,
@@ -50,6 +53,7 @@ export default function Editor({ workspace }: EditorProps) {
           hidden={activeTab !== "insert"}
         />
         <TableControls editor={editor} />
+        {find.open ? <FindReplaceBar controller={find} /> : null}
       </div>
       <div className="document-panes">
         {workspace.tabs.map((tab) => (

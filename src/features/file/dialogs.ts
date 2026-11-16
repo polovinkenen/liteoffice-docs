@@ -1,4 +1,5 @@
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
+import { ru } from "../../i18n/ru";
 import { isTauri } from "../../lib/tauri";
 import { ensureExtension, type DocumentFormat } from "./fileUtils";
 
@@ -122,6 +123,15 @@ export function confirmQuit(count = 1): Promise<boolean> {
     kind: "warning",
     okLabel: "Выйти",
     cancelLabel: "Отмена",
+  });
+}
+
+export function confirmRestoreSession(count: number): Promise<boolean> {
+  return ask(ru.autosave.restoreMessage(count), {
+    title: ru.autosave.restoreTitle,
+    kind: "info",
+    okLabel: ru.autosave.restoreOk,
+    cancelLabel: ru.autosave.restoreCancel,
   });
 }
 

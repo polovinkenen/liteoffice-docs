@@ -45,6 +45,13 @@ pub fn run() {
             commands::quit_app,
             commands::document::open_document,
             commands::document::save_document,
+            commands::autosave::autosave_document,
+            commands::autosave::list_autosaves,
+            commands::autosave::restore_autosave,
+            commands::autosave::discard_autosave,
+            commands::autosave::clear_autosaves,
+            commands::settings::load_settings,
+            commands::settings::save_settings,
             commands::image::load_image
         ])
         .build(tauri::generate_context!())
