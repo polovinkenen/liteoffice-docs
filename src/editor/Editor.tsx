@@ -95,10 +95,12 @@ export default function Editor({ workspace }: EditorProps) {
       ) : null}
       <footer className="statusbar">
         <span>{ru.status.ready}</span>
-        <span>
-          {ru.status.words}: {counts.words} · {ru.status.characters}:{" "}
-          {counts.characters}
-        </span>
+        {!showStart ? (
+          <span>
+            {ru.status.words}: {counts.words} · {ru.status.characters}:{" "}
+            {counts.characters}
+          </span>
+        ) : null}
       </footer>
     </section>
   );
