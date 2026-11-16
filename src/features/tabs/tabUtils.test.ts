@@ -18,7 +18,12 @@ describe("createBlankTab", () => {
 
     expect(tab.path).toBeNull();
     expect(tab.dirty).toBe(false);
+    expect(tab.showStart).toBe(false);
     expect(tab.initialDocument.type).toBe("doc");
+  });
+
+  it("может сразу показывать стартовый экран", () => {
+    expect(createBlankTab(1, true).showStart).toBe(true);
   });
 });
 

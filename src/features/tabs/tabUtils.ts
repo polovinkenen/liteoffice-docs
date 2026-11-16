@@ -13,6 +13,7 @@ export interface DocumentTab {
   warnings: string[];
   initialDocument: JSONContent;
   untitledNumber: number | null;
+  showStart: boolean;
 }
 
 let fallbackCounter = 0;
@@ -26,7 +27,10 @@ export function createTabId(): string {
   return `tab-${Date.now()}-${fallbackCounter}`;
 }
 
-export function createBlankTab(untitledNumber: number): DocumentTab {
+export function createBlankTab(
+  untitledNumber: number,
+  showStart = false,
+): DocumentTab {
   return {
     id: createTabId(),
     path: null,
@@ -41,6 +45,7 @@ export function createBlankTab(untitledNumber: number): DocumentTab {
     warnings: [],
     initialDocument: createEmptyDoc(),
     untitledNumber,
+    showStart,
   };
 }
 

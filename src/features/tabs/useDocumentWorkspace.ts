@@ -37,6 +37,13 @@ import {
 } from "../file/fileUtils";
 import { MENU_EVENT } from "../file/menuEvents";
 import {
+  addRecent as addRecentEntry,
+  clearRecent as clearRecentEntries,
+  listRecent,
+  removeRecent as removeRecentEntry,
+  type RecentEntry,
+} from "../recent/recentApi";
+import {
   anyDirty,
   createBlankTab,
   createTabId,
@@ -51,14 +58,19 @@ export interface DocumentWorkspace {
   activeId: string;
   activeTab: DocumentTab;
   activeEditor: Editor | null;
+  recent: RecentEntry[];
   newTab: () => void;
   activateTab: (id: string) => void;
   closeTab: (id?: string) => Promise<void>;
   open: () => Promise<void>;
+  openPaths: (paths: string[]) => Promise<void>;
   save: () => Promise<void>;
   saveAs: () => Promise<void>;
   reportError: (cause: unknown) => void;
   dismissMessages: () => void;
+  dismissStartScreen: (id?: string) => void;
+  removeRecent: (path: string) => Promise<void>;
+  clearRecent: () => Promise<void>;
   registerEditor: (id: string, editor: Editor) => void;
   unregisterEditor: (id: string) => void;
   markDirty: (id: string) => void;
@@ -74,6 +86,7 @@ interface TabPatch {
   busy?: boolean;
   error?: string | null;
   warnings?: string[];
+  showStart?: boolean;
 }
 
 function tabFromOpened(opened: OpenedDocument): DocumentTab {
@@ -88,6 +101,7 @@ function tabFromOpened(opened: OpenedDocument): DocumentTab {
     warnings: opened.warnings,
     initialDocument: opened.document,
     untitledNumber: null,
+    showStart: false,
   };
 }
 
@@ -99,12 +113,13 @@ export function useDocumentWorkspace(
   options: DocumentWorkspaceOptions = {},
 ): DocumentWorkspace {
   const autosaveEnabled = options.autosaveEnabled ?? true;
-  const [initialTab] = useState(() => createBlankTab(1));
+  const [initialTab] = useState(() => createBlankTab(1, true));
   const [tabs, setTabs] = useState<DocumentTab[]>(() => [initialTab]);
   const [activeId, setActiveId] = useState(initialTab.id);
   const [editors, setEditors] = useState<Map<string, Editor>>(
     () => new Map(),
   );
+  const [recent, setRecent] = useState<RecentEntry[]>([]);
 
   const tabsRef = useRef(tabs);
   const activeIdRef = useRef(activeId);
@@ -143,6 +158,92 @@ export function useDocumentWorkspace(
     editorsRef.current = next;
     setEditors(next);
   }, []);
+
+  const refreshRecent = useCallback(async () => {
+    if (!isTauri()) {
+      return;
+    }
+
+    try {
+      setRecent(await listRecent());
+    } catch (cause) {
+      console.error("Не удалось прочитать недавние документы", cause);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isTauri()) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void listRecent()
+      .then((entries) => {
+        if (!cancelled) {
+          setRecent(entries);
+        }
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          console.error("Не удалось прочитать недавние документы", cause);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const recordRecent = useCallback(async (path: string) => {
+    if (!isTauri()) {
+      return;
+    }
+
+    try {
+      setRecent(await addRecentEntry(path));
+    } catch (cause) {
+      console.error("Не удалось обновить недавние документы", cause);
+    }
+  }, []);
+
+  const removeRecent = useCallback(async (path: string) => {
+    if (!isTauri()) {
+      return;
+    }
+
+    try {
+      setRecent(await removeRecentEntry(path));
+    } catch (cause) {
+      console.error("Не удалось удалить документ из недавних", cause);
+    }
+  }, []);
+
+  const clearRecent = useCallback(async () => {
+    if (!isTauri()) {
+      return;
+    }
+
+    try {
+      setRecent(await clearRecentEntries());
+    } catch (cause) {
+      console.error("Не удалось очистить недавние документы", cause);
+    }
+  }, []);
+
+  const dismissStartScreen = useCallback(
+    (id?: string) => {
+      const targetId = id ?? activeIdRef.current;
+      const tab = tabsRef.current.find(
+        (candidate) => candidate.id === targetId,
+      );
+
+      if (tab?.showStart) {
+        patchTab(targetId, { showStart: false });
+      }
+    },
+    [patchTab],
+  );
 
   const autosaveDebouncer = useRef(createDebouncer(AUTOSAVE_DEBOUNCE_MS));
   const autosaveEnabledRef = useRef(autosaveEnabled);
@@ -228,8 +329,8 @@ export function useDocumentWorkspace(
         return;
       }
 
-      if (!tab.dirty) {
-        patchTab(id, { dirty: true });
+      if (!tab.dirty || tab.showStart) {
+        patchTab(id, { dirty: true, showStart: false });
       }
 
       scheduleAutosave(id);
@@ -238,10 +339,25 @@ export function useDocumentWorkspace(
   );
 
   const newTab = useCallback(() => {
+    const current = tabsRef.current.find(
+      (candidate) => candidate.id === activeIdRef.current,
+    );
+
+    if (current?.showStart) {
+      patchTab(current.id, { showStart: false });
+      window.setTimeout(() => {
+        editorsRef.current.get(current.id)?.commands.focus();
+      }, 0);
+      return;
+    }
+
     const tab = createBlankTab(nextUntitledNumber(tabsRef.current));
     commitTabs([...tabsRef.current, tab]);
     commitActive(tab.id);
-  }, [commitActive, commitTabs]);
+    window.setTimeout(() => {
+      editorsRef.current.get(tab.id)?.commands.focus();
+    }, 0);
+  }, [commitActive, commitTabs, patchTab]);
 
   const activateTab = useCallback(
     (id: string) => {
@@ -269,6 +385,7 @@ export function useDocumentWorkspace(
       for (const path of paths) {
         try {
           const opened = await openDocument(path);
+          await recordRecent(opened.path);
           const existing = findTabByPath(nextTabs, opened.path);
 
           if (existing) {
@@ -300,7 +417,7 @@ export function useDocumentWorkspace(
         }
       }
     },
-    [commitActive, commitTabs, patchTab],
+    [commitActive, commitTabs, patchTab, recordRecent],
   );
 
   const open = useCallback(async () => {
@@ -354,6 +471,7 @@ export function useDocumentWorkspace(
           dirty: false,
           warnings: saved.warnings,
         });
+        await recordRecent(saved.path);
         autosaveDebouncer.current.cancel(id);
         await discardStoredAutosave(id);
       } catch (cause) {
@@ -362,7 +480,7 @@ export function useDocumentWorkspace(
         patchTab(id, { busy: false });
       }
     },
-    [discardStoredAutosave, patchTab],
+    [discardStoredAutosave, patchTab, recordRecent],
   );
 
   const save = useCallback(() => saveActive(false), [saveActive]);
@@ -403,7 +521,10 @@ export function useDocumentWorkspace(
       );
 
       if (remaining.length === 0) {
-        const blank = createBlankTab(nextUntitledNumber(tabsRef.current));
+        const blank = createBlankTab(
+          nextUntitledNumber(tabsRef.current),
+          true,
+        );
         commitTabs([blank]);
         commitActive(blank.id);
         return;
@@ -601,6 +722,12 @@ export function useDocumentWorkspace(
           }),
           listen(MENU_EVENT.quit, () => void handleQuit()),
           listen(MENU_EVENT.quitRequested, () => void handleQuit()),
+          listen<string>(MENU_EVENT.recent, (event) => {
+            void openFiles([event.payload]);
+          }),
+          listen(MENU_EVENT.recentChanged, () => {
+            void refreshRecent();
+          }),
         ]);
 
         if (disposed) {
@@ -623,6 +750,8 @@ export function useDocumentWorkspace(
     handleQuit,
     newTab,
     open,
+    openFiles,
+    refreshRecent,
     save,
     saveAs,
   ]);
@@ -687,14 +816,19 @@ export function useDocumentWorkspace(
     activeId,
     activeTab,
     activeEditor,
+    recent,
     newTab,
     activateTab,
     closeTab,
     open,
+    openPaths: openFiles,
     save,
     saveAs,
     reportError,
     dismissMessages,
+    dismissStartScreen,
+    removeRecent,
+    clearRecent,
     registerEditor,
     unregisterEditor,
     markDirty,

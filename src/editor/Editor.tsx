@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useEditorState } from "@tiptap/react";
 import FindReplaceBar from "../features/findReplace/FindReplaceBar";
 import { useFindReplace } from "../features/findReplace/useFindReplace";
+import StartScreen from "../features/start/StartScreen";
 import DocumentTabBar from "../features/tabs/DocumentTabBar";
 import type { DocumentWorkspace } from "../features/tabs/useDocumentWorkspace";
 import { countWords } from "../lib/document";
@@ -19,6 +20,7 @@ interface EditorProps {
 export default function Editor({ workspace }: EditorProps) {
   const [activeTab, setActiveTab] = useState<EditorTab>("home");
   const editor = workspace.activeEditor;
+  const showStart = workspace.activeTab.showStart;
   const find = useFindReplace(editor);
   const words =
     useEditorState({
@@ -26,6 +28,11 @@ export default function Editor({ workspace }: EditorProps) {
       selector: ({ editor: current }) =>
         current ? countWords(current.getText()) : 0,
     }) ?? 0;
+
+  const startDocument = () => {
+    workspace.dismissStartScreen();
+    window.setTimeout(() => workspace.activeEditor?.commands.focus(), 0);
+  };
 
   return (
     <section className="editor">
@@ -37,37 +44,51 @@ export default function Editor({ workspace }: EditorProps) {
           onClose={(id) => void workspace.closeTab(id)}
           onNew={workspace.newTab}
         />
-        <EditorTabs active={activeTab} onChange={setActiveTab} />
-        <div
-          id="panel-home"
-          role="tabpanel"
-          aria-labelledby="tab-home"
-          className="editor-panel"
-          hidden={activeTab !== "home"}
-        >
-          <Toolbar editor={editor} />
-        </div>
-        <InsertPanel
-          editor={editor}
-          onError={workspace.reportError}
-          hidden={activeTab !== "insert"}
-        />
-        <TableControls editor={editor} />
-        {find.open ? <FindReplaceBar controller={find} /> : null}
+        {!showStart ? (
+          <>
+            <EditorTabs active={activeTab} onChange={setActiveTab} />
+            <div
+              id="panel-home"
+              role="tabpanel"
+              aria-labelledby="tab-home"
+              className="editor-panel"
+              hidden={activeTab !== "home"}
+            >
+              <Toolbar editor={editor} />
+            </div>
+            <InsertPanel
+              editor={editor}
+              onError={workspace.reportError}
+              hidden={activeTab !== "insert"}
+            />
+            <TableControls editor={editor} />
+            {find.open ? <FindReplaceBar controller={find} /> : null}
+          </>
+        ) : null}
       </div>
-      <div className="document-panes">
+      <div className="document-panes" hidden={showStart}>
         {workspace.tabs.map((tab) => (
           <DocumentPane
             key={tab.id}
             tabId={tab.id}
             initialDocument={tab.initialDocument}
-            active={tab.id === workspace.activeId}
+            active={tab.id === workspace.activeId && !showStart}
             onReady={workspace.registerEditor}
             onDispose={workspace.unregisterEditor}
             onDirty={workspace.markDirty}
           />
         ))}
       </div>
+      {showStart ? (
+        <StartScreen
+          recent={workspace.recent}
+          onNew={startDocument}
+          onOpen={() => void workspace.open()}
+          onOpenRecent={(path) => void workspace.openPaths([path])}
+          onRemoveRecent={(path) => void workspace.removeRecent(path)}
+          onClearRecent={() => void workspace.clearRecent()}
+        />
+      ) : null}
       <footer className="statusbar">
         <span>{ru.status.ready}</span>
         <span>

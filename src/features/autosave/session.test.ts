@@ -25,6 +25,7 @@ describe("tabFromAutosave", () => {
       format: "md",
       fileName: "заметка.md",
       dirty: true,
+      showStart: false,
     });
     expect(tab.initialDocument).toEqual(createEmptyDoc());
   });

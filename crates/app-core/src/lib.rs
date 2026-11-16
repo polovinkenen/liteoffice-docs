@@ -1,5 +1,6 @@
 pub mod autosave;
 pub mod files;
+pub mod recent;
 pub mod settings;
 
 use serde::ser::{SerializeStruct, Serializer};

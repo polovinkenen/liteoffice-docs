@@ -14,6 +14,7 @@ export function tabFromAutosave(record: AutosaveRecord): DocumentTab {
     warnings: [],
     initialDocument: record.document,
     untitledNumber: null,
+    showStart: false,
   };
 }
 

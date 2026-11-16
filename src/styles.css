@@ -305,6 +305,195 @@ body {
   font-size: 12px;
 }
 
+.start-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 8px 0 24px;
+}
+
+.start-screen__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 30px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.start-screen__mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.start-screen__hero h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.start-screen__hero p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.start-screen__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.start-button {
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.start-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.start-button--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.start-button--primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000000);
+  color: #ffffff;
+}
+
+.start-screen__recent {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 4px 14px rgba(20, 24, 35, 0.06);
+}
+
+.start-screen__recent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.start-screen__recent h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.start-screen__clear {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.start-screen__clear:hover {
+  color: var(--accent);
+}
+
+.start-screen__empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 340px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.recent-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: 8px;
+}
+
+.recent-item:hover {
+  background: var(--accent-soft);
+}
+
+.recent-item__open {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-item__name {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-item__meta {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-item__remove {
+  width: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.recent-item__remove:hover {
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #b91c1c;
+}
+
 .workspace {
   flex: 1;
   min-height: 0;
@@ -1158,6 +1347,7 @@ body {
   .editor-header,
   .toolbar,
   .find-bar,
+  .start-screen,
   .statusbar,
   .file-banners,
   .runtime {

@@ -52,6 +52,10 @@ pub fn run() {
             commands::autosave::clear_autosaves,
             commands::settings::load_settings,
             commands::settings::save_settings,
+            commands::recent::list_recent,
+            commands::recent::add_recent,
+            commands::recent::remove_recent,
+            commands::recent::clear_recent,
             commands::image::load_image
         ])
         .build(tauri::generate_context!())

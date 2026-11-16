@@ -1,5 +1,12 @@
+use std::path::Path;
+
 use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItemBuilder, SubmenuBuilder};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
+use wordlite_app_core::recent::{RecentEntry, RecentStore};
+
+pub const RECENT_PREFIX: &str = "recent:";
+pub const RECENT_CLEAR: &str = "recent:clear";
+pub const RECENT_EMPTY: &str = "recent:empty";
 
 pub const FILE_NEW: &str = "file.new";
 pub const FILE_OPEN: &str = "file.open";
@@ -17,6 +24,8 @@ pub const EVENT_FILE_SAVE_AS: &str = "menu:file:save-as";
 pub const EVENT_FILE_CLOSE_DOCUMENT: &str = "menu:file:close-document";
 pub const EVENT_FILE_CLOSE_WINDOW: &str = "menu:file:close-window";
 pub const EVENT_FILE_PRINT_FALLBACK: &str = "menu:file:print-fallback";
+pub const EVENT_FILE_RECENT: &str = "menu:file:recent";
+pub const EVENT_RECENT_CHANGED: &str = "menu:recent:changed";
 pub const EVENT_APP_QUIT: &str = "menu:app:quit";
 pub const EVENT_APP_QUIT_REQUESTED: &str = "menu:app:quit-requested";
 
@@ -33,6 +42,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let open = MenuItemBuilder::with_id(FILE_OPEN, "Открыть…")
         .accelerator("CmdOrCtrl+O")
         .build(app)?;
+    let recent = build_recent_submenu(app)?;
     let save = MenuItemBuilder::with_id(FILE_SAVE, "Сохранить")
         .accelerator("CmdOrCtrl+S")
         .build(app)?;
@@ -52,6 +62,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let file_menu = SubmenuBuilder::new(app, "Файл")
         .item(&new_document)
         .item(&open)
+        .item(&recent)
         .separator()
         .item(&save)
         .item(&save_as)
@@ -90,13 +101,129 @@ fn build_app_submenu<R: Runtime>(
     submenu.separator().item(quit).build()
 }
 
+fn build_recent_submenu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::Submenu<R>> {
+    let entries = recent_entries(app);
+    let mut items: Vec<tauri::menu::MenuItem<R>> = Vec::new();
+
+    if entries.is_empty() {
+        items.push(
+            MenuItemBuilder::with_id(RECENT_EMPTY, "Нет недавних документов")
+                .enabled(false)
+                .build(app)?,
+        );
+    } else {
+        for (index, entry) in entries.iter().enumerate() {
+            let label = recent_label(entry, &entries);
+            items.push(
+                MenuItemBuilder::with_id(format!("{RECENT_PREFIX}{index}"), label).build(app)?,
+            );
+        }
+    }
+
+    let clear = if entries.is_empty() {
+        None
+    } else {
+        Some(MenuItemBuilder::with_id(RECENT_CLEAR, "Очистить список").build(app)?)
+    };
+
+    let mut builder = SubmenuBuilder::new(app, "Недавние");
+
+    for item in &items {
+        builder = builder.item(item);
+    }
+
+    if let Some(clear) = &clear {
+        builder = builder.separator().item(clear);
+    }
+
+    builder.build()
+}
+
+fn recent_label(entry: &RecentEntry, entries: &[RecentEntry]) -> String {
+    let duplicates = entries
+        .iter()
+        .filter(|candidate| candidate.file_name == entry.file_name)
+        .count();
+
+    if duplicates <= 1 {
+        return entry.file_name.clone();
+    }
+
+    let parent = Path::new(&entry.path)
+        .parent()
+        .and_then(|path| path.file_name())
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+
+    if parent.is_empty() {
+        entry.file_name.clone()
+    } else {
+        format!("{} — {}", entry.file_name, parent)
+    }
+}
+
+fn recent_store<R: Runtime>(app: &AppHandle<R>) -> Option<RecentStore> {
+    app.path().app_data_dir().ok().map(RecentStore::new)
+}
+
+fn recent_entries<R: Runtime>(app: &AppHandle<R>) -> Vec<RecentEntry> {
+    recent_store(app)
+        .and_then(|store| store.list().ok())
+        .unwrap_or_default()
+}
+
+pub fn refresh_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let menu = build_menu(app)?;
+    app.set_menu(menu)?;
+    Ok(())
+}
+
+fn clear_recent<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(store) = recent_store(app) {
+        if let Err(error) = store.clear() {
+            tracing::warn!(%error, "не удалось очистить недавние документы");
+        }
+    }
+
+    if let Err(error) = refresh_menu(app) {
+        tracing::warn!(%error, "не удалось обновить меню после очистки недавних");
+    }
+
+    if let Err(error) = app.emit(EVENT_RECENT_CHANGED, ()) {
+        tracing::warn!(%error, event = EVENT_RECENT_CHANGED, "не удалось отправить событие");
+    }
+}
+
 pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
-    if event.id().as_ref() == FILE_PRINT {
+    let id: &str = event.id().as_ref();
+
+    if id == FILE_PRINT {
         print_window(app);
         return;
     }
 
-    let event_name = match event.id().as_ref() {
+    if let Some(command) = id.strip_prefix(RECENT_PREFIX) {
+        if command == "empty" {
+            return;
+        }
+
+        if command == "clear" {
+            clear_recent(app);
+            return;
+        }
+
+        if let Ok(index) = command.parse::<usize>() {
+            if let Some(entry) = recent_entries(app).get(index) {
+                if let Err(error) = app.emit(EVENT_FILE_RECENT, entry.path.clone()) {
+                    tracing::warn!(%error, event = EVENT_FILE_RECENT, "не удалось отправить событие");
+                }
+            }
+        }
+
+        return;
+    }
+
+    let event_name = match id {
         FILE_NEW => EVENT_FILE_NEW,
         FILE_OPEN => EVENT_FILE_OPEN,
         FILE_SAVE => EVENT_FILE_SAVE,
