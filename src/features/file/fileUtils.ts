@@ -13,6 +13,8 @@ const FORMATTING_TYPES = new Set([
   "bulletList",
   "orderedList",
   "listItem",
+  "taskList",
+  "taskItem",
   "blockquote",
   "codeBlock",
   "table",

@@ -60,6 +60,7 @@ impl DocumentCodec for MarkdownCodec {
 fn options() -> Options<'static> {
     let mut options = Options::default();
     options.extension.table = true;
+    options.extension.tasklist = true;
     options.extension.strikethrough = true;
     options.extension.autolink = true;
     options
@@ -125,10 +126,7 @@ fn convert_block<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> Vec<P
             warnings.warn("Сноски не поддерживаются и были пропущены.");
             Vec::new()
         }
-        NodeValue::TaskItem(_) => {
-            warnings.warn("Списки задач не поддерживаются Markdown-конвертером.");
-            Vec::new()
-        }
+        NodeValue::TaskItem(_) => vec![convert_task_item(node, warnings)],
         NodeValue::Document => convert_blocks(node, warnings),
         _ => {
             let blocks = convert_blocks(node, warnings);
@@ -149,19 +147,29 @@ fn convert_block<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> Vec<P
 }
 
 fn convert_list<'a>(node: &'a AstNode<'a>, list: &NodeList, warnings: &mut WarningSink) -> PmNode {
-    let node_type = match list.list_type {
-        ListType::Bullet => "bulletList",
-        ListType::Ordered => "orderedList",
+    let node_type = if list.is_task_list {
+        "taskList"
+    } else {
+        match list.list_type {
+            ListType::Bullet => "bulletList",
+            ListType::Ordered => "orderedList",
+        }
     };
 
     let items = node
         .children()
-        .map(|item| convert_list_item(item, warnings))
+        .map(|item| {
+            if list.is_task_list {
+                convert_task_item(item, warnings)
+            } else {
+                convert_list_item(item, warnings)
+            }
+        })
         .collect();
 
     let mut pm_node = PmNode::with_content(node_type, items);
 
-    if matches!(list.list_type, ListType::Ordered) && list.start != 1 {
+    if !list.is_task_list && matches!(list.list_type, ListType::Ordered) && list.start != 1 {
         pm_node.attrs = Some(json!({ "start": list.start }));
     }
 
@@ -176,6 +184,23 @@ fn convert_list_item<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> P
     }
 
     PmNode::with_content("listItem", content)
+}
+
+fn convert_task_item<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> PmNode {
+    let checked = match &node.data.borrow().value {
+        NodeValue::TaskItem(item) => item.symbol.is_some(),
+        _ => false,
+    };
+    let mut content = convert_blocks(node, warnings);
+
+    if content.first().map(|child| child.node_type.as_str()) != Some("paragraph") {
+        content.insert(0, PmNode::paragraph());
+    }
+
+    let mut item = PmNode::with_content("taskItem", content);
+    item.attrs = Some(json!({ "checked": checked }));
+
+    item
 }
 
 fn convert_table<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> PmNode {
@@ -468,6 +493,7 @@ fn write_block(node: &PmNode, output: &mut String, indent: usize, context: &mut 
         }
         "bulletList" => write_list(node, output, false, indent, context),
         "orderedList" => write_list(node, output, true, indent, context),
+        "taskList" => write_task_list(node, output, indent, context),
         "table" => write_table(node, output, context),
         "pageBreak" => output.push_str("<!-- pagebreak -->\n\n"),
         "horizontalRule" => output.push_str("---\n\n"),
@@ -582,6 +608,55 @@ fn write_list(
                 }
                 "bulletList" => write_list(child, output, false, indent + 1, context),
                 "orderedList" => write_list(child, output, true, indent + 1, context),
+                "taskList" => write_task_list(child, output, indent + 1, context),
+                _ => {
+                    let mut nested = String::new();
+                    write_block(child, &mut nested, indent + 1, context);
+
+                    for line in nested.trim_end().lines() {
+                        output.push_str(&format!("{padding}  {line}\n"));
+                    }
+                }
+            }
+        }
+
+        if !first_written {
+            output.push_str(&format!("{padding}{marker}\n"));
+        }
+    }
+
+    output.push('\n');
+}
+
+fn write_task_list(node: &PmNode, output: &mut String, indent: usize, context: &mut WriteContext) {
+    let padding = "  ".repeat(indent);
+
+    for item in &node.content {
+        let checked = item
+            .attrs
+            .as_ref()
+            .and_then(|attrs| attrs.get("checked"))
+            .and_then(|checked| checked.as_bool())
+            .unwrap_or(false);
+        let marker = if checked { "- [x] " } else { "- [ ] " };
+        let mut first_written = false;
+
+        for child in &item.content {
+            match child.node_type.as_str() {
+                "paragraph" => {
+                    let mut text = String::new();
+                    write_inline_children(child, &mut text, context);
+
+                    if first_written {
+                        output.push_str(&format!("{padding}  {text}\n"));
+                    } else {
+                        output.push_str(&format!("{padding}{marker}{text}\n"));
+                        first_written = true;
+                    }
+                }
+                "bulletList" => write_list(child, output, false, indent + 1, context),
+                "orderedList" => write_list(child, output, true, indent + 1, context),
+                "taskList" => write_task_list(child, output, indent + 1, context),
                 _ => {
                     let mut nested = String::new();
                     write_block(child, &mut nested, indent + 1, context);
@@ -602,6 +677,17 @@ fn write_list(
 }
 
 fn write_table(node: &PmNode, output: &mut String, context: &mut WriteContext) {
+    if node
+        .content
+        .iter()
+        .flat_map(|row| row.content.iter())
+        .any(has_cell_span)
+    {
+        context
+            .warnings
+            .warn("Объединённые ячейки не сохраняются в Markdown.");
+    }
+
     let rows: Vec<Vec<String>> = node
         .content
         .iter()
@@ -629,6 +715,22 @@ fn write_table(node: &PmNode, output: &mut String, context: &mut WriteContext) {
     }
 
     output.push('\n');
+}
+
+fn has_cell_span(cell: &PmNode) -> bool {
+    let Some(attrs) = cell.attrs.as_ref().and_then(|attrs| attrs.as_object()) else {
+        return false;
+    };
+    let colspan = attrs
+        .get("colspan")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(1);
+    let rowspan = attrs
+        .get("rowspan")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(1);
+
+    colspan > 1 || rowspan > 1
 }
 
 fn write_table_row(cells: &[String], columns: usize, output: &mut String) {
@@ -783,6 +885,50 @@ mod tests {
 
         assert_eq!(item.node_type, "listItem");
         assert_eq!(item.content[1].node_type, "bulletList");
+    }
+
+    #[test]
+    fn parses_task_lists() {
+        let imported = read("- [ ] первая\n- [x] вторая\n");
+
+        let list = &imported.document.content[0];
+        let first = &list.content[0];
+        let second = &list.content[1];
+
+        assert_eq!(list.node_type, "taskList");
+        assert_eq!(first.node_type, "taskItem");
+        assert_eq!(first.attrs, Some(json!({ "checked": false })));
+        assert_eq!(second.attrs, Some(json!({ "checked": true })));
+        assert_eq!(node_text(first), "первая");
+        assert_eq!(node_text(second), "вторая");
+        assert!(imported.warnings.is_empty());
+    }
+
+    #[test]
+    fn parses_nested_task_lists() {
+        let imported = read("- [ ] родитель\n  - [x] дочерняя\n");
+
+        let list = &imported.document.content[0];
+        let parent = &list.content[0];
+        let nested = &parent.content[1];
+
+        assert_eq!(list.node_type, "taskList");
+        assert_eq!(nested.node_type, "taskList");
+        assert_eq!(nested.content[0].attrs, Some(json!({ "checked": true })));
+        assert_eq!(node_text(&nested.content[0]), "дочерняя");
+    }
+
+    #[test]
+    fn task_list_round_trip() {
+        let source = "- [ ] первая\n- [x] вторая\n";
+        let original = read(source);
+        let written = write(&original.document);
+
+        assert!(written.text.contains("- [ ] первая"));
+        assert!(written.text.contains("- [x] вторая"));
+
+        let restored = read(&written.text);
+        assert_eq!(restored.document, original.document);
     }
 
     #[test]
@@ -951,6 +1097,40 @@ mod tests {
             node_text(&restored.document.content[0].content[1].content[1]),
             "2"
         );
+    }
+
+    #[test]
+    fn warns_about_merged_cells() {
+        fn cell(node_type: &str, text: &str, colspan: u64) -> PmNode {
+            let mut cell = PmNode::with_content(
+                node_type,
+                vec![PmNode::with_content("paragraph", vec![PmNode::text(text)])],
+            );
+            cell.attrs = Some(json!({ "colspan": colspan, "rowspan": 1 }));
+            cell
+        }
+
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode::with_content(
+                "table",
+                vec![
+                    PmNode::with_content(
+                        "tableRow",
+                        vec![cell("tableHeader", "A", 1), cell("tableHeader", "B", 1)],
+                    ),
+                    PmNode::with_content("tableRow", vec![cell("tableCell", "объединено", 2)]),
+                ],
+            )],
+        };
+
+        let written = write(&document);
+
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Объединённые")));
     }
 
     #[test]

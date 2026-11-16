@@ -5,8 +5,10 @@ import {
   AddColumnIcon,
   AddRowIcon,
   DeleteTableIcon,
+  MergeCellsIcon,
   RemoveColumnIcon,
   RemoveRowIcon,
+  SplitCellIcon,
 } from "./icons";
 
 interface TableControlsProps {
@@ -30,6 +32,8 @@ export default function TableControls({ editor }: TableControlsProps) {
           .deleteColumn()
           .run(),
         canDeleteRow: current.can().chain().focus().deleteRow().run(),
+        canMergeCells: current.can().mergeCells(),
+        canSplitCell: current.can().splitCell(),
       };
     },
   });
@@ -76,6 +80,25 @@ export default function TableControls({ editor }: TableControlsProps) {
       >
         <RemoveRowIcon />
         <span>{ru.table.removeRow}</span>
+      </button>
+
+      <button
+        type="button"
+        className="table-control"
+        disabled={!state.canMergeCells}
+        onClick={() => editor.chain().focus().mergeCells().run()}
+      >
+        <MergeCellsIcon />
+        <span>{ru.table.mergeCells}</span>
+      </button>
+      <button
+        type="button"
+        className="table-control"
+        disabled={!state.canSplitCell}
+        onClick={() => editor.chain().focus().splitCell().run()}
+      >
+        <SplitCellIcon />
+        <span>{ru.table.splitCell}</span>
       </button>
 
       <button

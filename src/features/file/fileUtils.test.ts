@@ -71,6 +71,28 @@ describe("hasFormatting", () => {
         content: [{ type: "pageBreak" }],
       }),
     ).toBe(true);
+    expect(
+      hasFormatting({
+        type: "doc",
+        content: [
+          {
+            type: "taskList",
+            content: [
+              {
+                type: "taskItem",
+                attrs: { checked: false },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "задача" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 
   it("распознаёт форматирование абзаца", () => {

@@ -21,6 +21,7 @@ import {
   IndentIcon,
   LinkIcon,
   OutdentIcon,
+  TaskListIcon,
 } from "./icons";
 
 interface ToolbarProps {
@@ -121,6 +122,7 @@ export default function Toolbar({ editor }: ToolbarProps) {
         link: current.isActive("link"),
         bulletList: current.isActive("bulletList"),
         orderedList: current.isActive("orderedList"),
+        taskList: current.isActive("taskList"),
         blockquote: current.isActive("blockquote"),
         codeBlock: current.isActive("codeBlock"),
         blockStyle: getBlockStyle(current),
@@ -438,6 +440,13 @@ export default function Toolbar({ editor }: ToolbarProps) {
             onClick={() => editor?.chain().focus().toggleOrderedList().run()}
           >
             1.
+          </ToolButton>
+          <ToolButton
+            label={ru.toolbar.taskList}
+            active={snapshot?.taskList ?? false}
+            onClick={() => editor?.chain().focus().toggleTaskList().run()}
+          >
+            <TaskListIcon />
           </ToolButton>
           <ToolButton
             label={ru.toolbar.blockquote}

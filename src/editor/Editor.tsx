@@ -5,7 +5,6 @@ import { useFindReplace } from "../features/findReplace/useFindReplace";
 import StartScreen from "../features/start/StartScreen";
 import DocumentTabBar from "../features/tabs/DocumentTabBar";
 import type { DocumentWorkspace } from "../features/tabs/useDocumentWorkspace";
-import { countWords } from "../lib/document";
 import { ru } from "../i18n/ru";
 import DocumentPane from "./DocumentPane";
 import EditorTabs, { type EditorTab } from "./EditorTabs";
@@ -22,12 +21,17 @@ export default function Editor({ workspace }: EditorProps) {
   const editor = workspace.activeEditor;
   const showStart = workspace.activeTab.showStart;
   const find = useFindReplace(editor);
-  const words =
+  const counts =
     useEditorState({
       editor,
       selector: ({ editor: current }) =>
-        current ? countWords(current.getText()) : 0,
-    }) ?? 0;
+        current
+          ? {
+              words: current.storage.characterCount.words(),
+              characters: current.storage.characterCount.characters(),
+            }
+          : { words: 0, characters: 0 },
+    }) ?? { words: 0, characters: 0 };
 
   const startDocument = () => {
     workspace.dismissStartScreen();
@@ -92,7 +96,8 @@ export default function Editor({ workspace }: EditorProps) {
       <footer className="statusbar">
         <span>{ru.status.ready}</span>
         <span>
-          {ru.status.words}: {words}
+          {ru.status.words}: {counts.words} · {ru.status.characters}:{" "}
+          {counts.characters}
         </span>
       </footer>
     </section>

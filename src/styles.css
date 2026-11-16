@@ -1078,6 +1078,51 @@ body {
   padding-left: 1.6em;
 }
 
+.document-body .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.document-body ul[data-type="taskList"] {
+  padding-left: 0;
+  list-style: none;
+}
+
+.document-body ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.document-body ul[data-type="taskList"] > li > label {
+  flex: 0 0 auto;
+  margin-top: 0.3em;
+}
+
+.document-body ul[data-type="taskList"] input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.document-body ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-body ul[data-type="taskList"] > li > div > p {
+  margin-bottom: 0.35em;
+}
+
+.document-body ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 .statusbar {
   display: flex;
   justify-content: space-between;
@@ -1399,6 +1444,10 @@ body {
 
   .document-body .page-break::after {
     display: none;
+  }
+
+  .document-body .is-editor-empty::before {
+    content: none;
   }
 
   .ProseMirror-gapcursor,

@@ -93,6 +93,26 @@ export function DeleteTableIcon() {
   );
 }
 
+export function MergeCellsIcon() {
+  return (
+    <Icon>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 12h7M14 12h7" />
+      <path d="m8 9-3 3 3 3M16 9l3 3-3 3" />
+    </Icon>
+  );
+}
+
+export function SplitCellIcon() {
+  return (
+    <Icon>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M12 4v6M12 14v6" />
+      <path d="m8 8 4-4 4 4M8 16l4 4 4-4" />
+    </Icon>
+  );
+}
+
 export function AlignLeftIcon() {
   return (
     <Icon>
@@ -148,6 +168,20 @@ export function LinkIcon() {
     <Icon>
       <path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
       <path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" />
+    </Icon>
+  );
+}
+
+export function TaskListIcon() {
+  return (
+    <Icon>
+      <rect x="3" y="4" width="4" height="4" rx="1" />
+      <path d="m4 6 .7.7L6.5 5" />
+      <rect x="3" y="10" width="4" height="4" rx="1" />
+      <path d="m4 12 .7.7L6.5 11" />
+      <rect x="3" y="16" width="4" height="4" rx="1" />
+      <path d="M4 18h2" />
+      <path d="M10 6h11M10 12h11M10 18h11" />
     </Icon>
   );
 }
