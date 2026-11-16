@@ -6,10 +6,11 @@ use wordlite_docmodel::{PmDoc, PmNode};
 pub enum DocumentFormat {
     Txt,
     Markdown,
+    Html,
 }
 
 impl DocumentFormat {
-    pub const ALL: [Self; 2] = [Self::Txt, Self::Markdown];
+    pub const ALL: [Self; 3] = [Self::Txt, Self::Markdown, Self::Html];
 
     pub fn from_path(path: &Path) -> Option<Self> {
         let extension = path.extension()?.to_str()?.to_ascii_lowercase();
@@ -23,6 +24,7 @@ impl DocumentFormat {
         match self {
             Self::Txt => "txt",
             Self::Markdown => "md",
+            Self::Html => "html",
         }
     }
 
@@ -30,6 +32,7 @@ impl DocumentFormat {
         match self {
             Self::Txt => "Текст",
             Self::Markdown => "Markdown",
+            Self::Html => "HTML",
         }
     }
 
@@ -37,6 +40,7 @@ impl DocumentFormat {
         match self {
             Self::Txt => "txt",
             Self::Markdown => "md",
+            Self::Html => "html",
         }
     }
 
@@ -44,6 +48,7 @@ impl DocumentFormat {
         match self {
             Self::Txt => &["txt"],
             Self::Markdown => &["md", "markdown"],
+            Self::Html => &["html", "htm"],
         }
     }
 
@@ -205,6 +210,10 @@ mod tests {
             DocumentFormat::from_path(Path::new("письмо.txt")),
             Some(DocumentFormat::Txt)
         );
+        assert_eq!(
+            DocumentFormat::from_path(Path::new("Страница.HTM")),
+            Some(DocumentFormat::Html)
+        );
         assert_eq!(DocumentFormat::from_path(Path::new("документ.odt")), None);
     }
 
@@ -212,7 +221,7 @@ mod tests {
     fn lists_supported_extensions() {
         assert_eq!(
             DocumentFormat::supported_extensions(),
-            vec!["txt", "md", "markdown"]
+            vec!["txt", "md", "markdown", "html", "htm"]
         );
     }
 

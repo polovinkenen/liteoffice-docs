@@ -8,6 +8,7 @@ description = "Реестр конвертеров документов Wordlite
 
 [dependencies]
 wordlite-formats-core = { path = "../formats-core" }
+wordlite-formats-html = { path = "../formats-html" }
 wordlite-formats-markdown = { path = "../formats-markdown" }
 wordlite-formats-txt = { path = "../formats-txt" }
 

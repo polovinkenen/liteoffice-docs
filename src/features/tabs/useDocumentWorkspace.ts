@@ -699,6 +699,32 @@ export function useDocumentWorkspace(
     };
   }, [commitTabs, flushAllAutosaves]);
 
+  const applyHistory = useCallback((command: "undo" | "redo") => {
+    const element = document.activeElement;
+
+    if (
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement
+    ) {
+      document.execCommand(command);
+      return;
+    }
+
+    const editor = editorsRef.current.get(activeIdRef.current);
+
+    if (!editor) {
+      return;
+    }
+
+    const chain = editor.chain().focus();
+
+    if (command === "undo") {
+      chain.undo().run();
+    } else {
+      chain.redo().run();
+    }
+  }, []);
+
   useEffect(() => {
     if (!isTauri()) {
       return;
@@ -711,6 +737,8 @@ export function useDocumentWorkspace(
       try {
         const listeners = await Promise.all([
           listen(MENU_EVENT.new, () => newTab()),
+          listen(MENU_EVENT.undo, () => applyHistory("undo")),
+          listen(MENU_EVENT.redo, () => applyHistory("redo")),
           listen(MENU_EVENT.open, () => void open()),
           listen(MENU_EVENT.save, () => void save()),
           listen(MENU_EVENT.saveAs, () => void saveAs()),
@@ -745,6 +773,7 @@ export function useDocumentWorkspace(
       stops.forEach((stop) => stop());
     };
   }, [
+    applyHistory,
     closeTab,
     handleCloseWindow,
     handleQuit,

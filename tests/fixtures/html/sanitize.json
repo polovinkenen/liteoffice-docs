@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "content": [
+        {
+          "text": "Текст опасная ссылка",
+          "type": "text"
+        },
+        {
+          "attrs": {
+            "alt": "встроенная",
+            "src": "data:image/png;base64,iVBORw0KGgo=",
+            "title": null
+          },
+          "type": "image"
+        }
+      ],
+      "type": "paragraph"
+    }
+  ],
+  "type": "doc"
+}

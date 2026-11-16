@@ -6,6 +6,8 @@ export const MENU_EVENT = {
   closeDocument: "menu:file:close-document",
   closeWindow: "menu:file:close-window",
   printFallback: "menu:file:print-fallback",
+  undo: "menu:edit:undo",
+  redo: "menu:edit:redo",
   recent: "menu:file:recent",
   recentChanged: "menu:recent:changed",
   quit: "menu:app:quit",

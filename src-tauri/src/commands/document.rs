@@ -211,6 +211,47 @@ mod tests {
     }
 
     #[test]
+    fn saves_and_reopens_html_document() {
+        let directory = tempfile::tempdir().expect("временный каталог");
+        let path = directory.path().join("страница.html");
+        let path_string = path.to_string_lossy().into_owned();
+        let document: PmDoc = serde_json::from_value(json!({
+            "type": "doc",
+            "content": [
+                {
+                    "type": "heading",
+                    "attrs": { "level": 2 },
+                    "content": [{ "type": "text", "text": "Заголовок" }]
+                },
+                {
+                    "type": "paragraph",
+                    "content": [
+                        { "type": "text", "text": "Текст " },
+                        {
+                            "type": "text",
+                            "text": "важный",
+                            "marks": [{ "type": "bold" }]
+                        }
+                    ]
+                }
+            ]
+        }))
+        .expect("документ");
+
+        let saved = save_document_sync(path_string.clone(), document.clone()).expect("сохранение");
+
+        assert_eq!(saved.format, "html");
+        let source = std::fs::read_to_string(&path).expect("чтение");
+        assert!(source.starts_with("<!DOCTYPE html>"), "{source}");
+
+        let opened = open_document_sync(path_string).expect("открытие");
+
+        assert_eq!(opened.format, "html");
+        assert_eq!(opened.document, document);
+        assert!(opened.warnings.is_empty());
+    }
+
+    #[test]
     fn rejects_unsupported_extension() {
         let directory = tempfile::tempdir().expect("временный каталог");
         let path = directory.path().join("документ.odt");

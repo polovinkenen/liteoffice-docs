@@ -1,11 +1,13 @@
 import type { JSONContent } from "@tiptap/core";
 
-export type DocumentFormat = "md" | "txt";
+export type DocumentFormat = "md" | "txt" | "html";
 
 const EXTENSIONS: Record<string, DocumentFormat> = {
   md: "md",
   markdown: "md",
   txt: "txt",
+  html: "html",
+  htm: "html",
 };
 
 const FORMATTING_TYPES = new Set([

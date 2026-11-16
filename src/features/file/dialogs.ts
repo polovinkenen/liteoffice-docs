@@ -11,8 +11,8 @@ function ensureTauri(): void {
 
 const OPEN_FILTERS = [
   {
-    name: "Текстовые документы",
-    extensions: ["md", "markdown", "txt"],
+    name: "Документы",
+    extensions: ["md", "markdown", "txt", "html", "htm"],
   },
 ];
 
@@ -22,10 +22,20 @@ const SAVE_FILTERS = [
     extensions: ["md"],
   },
   {
+    name: "HTML",
+    extensions: ["html"],
+  },
+  {
     name: "Текст",
     extensions: ["txt"],
   },
 ];
+
+const DEFAULT_NAMES: Record<DocumentFormat, string> = {
+  md: "Без названия.md",
+  html: "Без названия.html",
+  txt: "Без названия.txt",
+};
 
 const IMAGE_FILTERS = [
   {
@@ -69,7 +79,7 @@ export async function pickSavePath(
   ensureTauri();
 
   const defaultPath =
-    currentPath ?? (format === "txt" ? "Без названия.txt" : "Без названия.md");
+    currentPath ?? DEFAULT_NAMES[format ?? "md"];
 
   const selected = await save({
     defaultPath,

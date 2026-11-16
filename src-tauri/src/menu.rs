@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use tauri::menu::{Menu, MenuBuilder, MenuEvent, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{
+    Menu, MenuBuilder, MenuEvent, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
+};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use wordlite_app_core::recent::{RecentEntry, RecentStore};
 
@@ -15,6 +17,8 @@ pub const FILE_SAVE_AS: &str = "file.save-as";
 pub const FILE_PRINT: &str = "file.print";
 pub const FILE_CLOSE_DOCUMENT: &str = "file.close-document";
 pub const FILE_CLOSE_WINDOW: &str = "file.close-window";
+pub const EDIT_UNDO: &str = "edit.undo";
+pub const EDIT_REDO: &str = "edit.redo";
 pub const APP_QUIT: &str = "app.quit";
 
 pub const EVENT_FILE_NEW: &str = "menu:file:new";
@@ -24,6 +28,8 @@ pub const EVENT_FILE_SAVE_AS: &str = "menu:file:save-as";
 pub const EVENT_FILE_CLOSE_DOCUMENT: &str = "menu:file:close-document";
 pub const EVENT_FILE_CLOSE_WINDOW: &str = "menu:file:close-window";
 pub const EVENT_FILE_PRINT_FALLBACK: &str = "menu:file:print-fallback";
+pub const EVENT_EDIT_UNDO: &str = "menu:edit:undo";
+pub const EVENT_EDIT_REDO: &str = "menu:edit:redo";
 pub const EVENT_FILE_RECENT: &str = "menu:file:recent";
 pub const EVENT_RECENT_CHANGED: &str = "menu:recent:changed";
 pub const EVENT_APP_QUIT: &str = "menu:app:quit";
@@ -73,13 +79,39 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&close_window)
         .build()?;
 
+    let edit_menu = build_edit_submenu(app)?;
+
     let window_menu = SubmenuBuilder::new(app, "Окно")
         .minimize_with_text("Свернуть")
         .maximize_with_text("Масштаб")
         .build()?;
 
     MenuBuilder::new(app)
-        .items(&[&app_menu, &file_menu, &window_menu])
+        .items(&[&app_menu, &file_menu, &edit_menu, &window_menu])
+        .build()
+}
+
+fn build_edit_submenu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<tauri::menu::Submenu<R>> {
+    let undo = MenuItemBuilder::with_id(EDIT_UNDO, "Отменить")
+        .accelerator("CmdOrCtrl+Z")
+        .build(app)?;
+    let redo = MenuItemBuilder::with_id(EDIT_REDO, "Повторить")
+        .accelerator("CmdOrCtrl+Shift+Z")
+        .build(app)?;
+    let cut = PredefinedMenuItem::cut(app, Some("Вырезать"))?;
+    let copy = PredefinedMenuItem::copy(app, Some("Копировать"))?;
+    let paste = PredefinedMenuItem::paste(app, Some("Вставить"))?;
+    let select_all = PredefinedMenuItem::select_all(app, Some("Выделить все"))?;
+
+    SubmenuBuilder::new(app, "Правка")
+        .item(&undo)
+        .item(&redo)
+        .separator()
+        .item(&cut)
+        .item(&copy)
+        .item(&paste)
+        .separator()
+        .item(&select_all)
         .build()
 }
 
@@ -230,6 +262,8 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
         FILE_SAVE_AS => EVENT_FILE_SAVE_AS,
         FILE_CLOSE_DOCUMENT => EVENT_FILE_CLOSE_DOCUMENT,
         FILE_CLOSE_WINDOW => EVENT_FILE_CLOSE_WINDOW,
+        EDIT_UNDO => EVENT_EDIT_UNDO,
+        EDIT_REDO => EVENT_EDIT_REDO,
         APP_QUIT => EVENT_APP_QUIT,
         _ => return,
     };

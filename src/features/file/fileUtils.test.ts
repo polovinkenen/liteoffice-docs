@@ -12,6 +12,8 @@ describe("formatFromPath", () => {
     expect(formatFromPath("/tmp/Заметка.MD")).toBe("md");
     expect(formatFromPath("README.markdown")).toBe("md");
     expect(formatFromPath("C:\\docs\\письмо.txt")).toBe("txt");
+    expect(formatFromPath("Страница.HTML")).toBe("html");
+    expect(formatFromPath("index.htm")).toBe("html");
   });
 
   it("возвращает null для неизвестных файлов", () => {
