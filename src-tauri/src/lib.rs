@@ -56,7 +56,8 @@ pub fn run() {
             commands::recent::add_recent,
             commands::recent::remove_recent,
             commands::recent::clear_recent,
-            commands::image::load_image
+            commands::image::import_image,
+            commands::image::load_asset
         ])
         .build(tauri::generate_context!())
         .expect("не удалось собрать Wordlite");

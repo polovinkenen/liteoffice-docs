@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod autosave;
 pub mod files;
 pub mod recent;

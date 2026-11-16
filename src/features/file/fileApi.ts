@@ -15,9 +15,9 @@ export interface SavedDocument {
   warnings: string[];
 }
 
-export interface LoadedImage {
-  dataUrl: string;
-  name: string;
+export interface StoredAsset {
+  assetId: string;
+  fileName: string;
   alt: string;
 }
 
@@ -32,8 +32,12 @@ export function saveDocument(
   return invoke<SavedDocument>("save_document", { path, document });
 }
 
-export function loadImage(path: string): Promise<LoadedImage> {
-  return invoke<LoadedImage>("load_image", { path });
+export function importImage(path: string): Promise<StoredAsset> {
+  return invoke<StoredAsset>("import_image", { path });
+}
+
+export function loadAsset(assetId: string): Promise<string> {
+  return invoke<string>("load_asset", { assetId });
 }
 
 export function setDocumentDirty(dirty: boolean): Promise<void> {

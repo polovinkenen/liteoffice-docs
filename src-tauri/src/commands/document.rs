@@ -1,12 +1,22 @@
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+use tauri::{AppHandle, Manager};
+use wordlite_app_core::assets::AssetStore;
 use wordlite_app_core::files::{read_text, write_text_atomic, MAX_TEXT_FILE_BYTES};
 use wordlite_app_core::{AppError, AppResult};
 use wordlite_docmodel::PmDoc;
 use wordlite_formats::{codec_for, DocumentFormat};
 
 use super::run_blocking;
+
+fn asset_store(app: &AppHandle) -> AppResult<AssetStore> {
+    let directory = app.path().app_data_dir().map_err(|error| {
+        AppError::Internal(format!("не удалось определить каталог данных: {error}"))
+    })?;
+
+    Ok(AssetStore::new(directory))
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,11 +41,20 @@ pub async fn open_document(path: String) -> AppResult<OpenedDocument> {
 }
 
 #[tauri::command]
-pub async fn save_document(path: String, document: serde_json::Value) -> AppResult<SavedDocument> {
-    let document: PmDoc = serde_json::from_value(document)
+pub async fn save_document(
+    app: AppHandle,
+    path: String,
+    document: serde_json::Value,
+) -> AppResult<SavedDocument> {
+    let mut document: PmDoc = serde_json::from_value(document)
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
+    let assets = asset_store(&app)?;
 
-    run_blocking(move || save_document_sync(path, document)).await
+    run_blocking(move || {
+        assets.resolve_document(&mut document)?;
+        save_document_sync(path, document)
+    })
+    .await
 }
 
 pub(crate) fn open_document_sync(path: String) -> AppResult<OpenedDocument> {

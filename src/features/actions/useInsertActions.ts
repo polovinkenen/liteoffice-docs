@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Editor } from "@tiptap/react";
 import { pickImagePath } from "../file/dialogs";
-import { loadImage } from "../file/fileApi";
+import { importImage } from "../file/fileApi";
 
 export interface InsertActions {
   insertImage: () => Promise<void>;
@@ -25,14 +25,14 @@ export function useInsertActions(
         return;
       }
 
-      const image = await loadImage(path);
+      const image = await importImage(path);
       editor
         .chain()
         .focus()
         .setImage({
-          src: image.dataUrl,
+          src: `asset:${image.assetId}`,
           alt: image.alt,
-          title: image.name,
+          title: image.fileName,
         })
         .run();
     } catch (cause) {

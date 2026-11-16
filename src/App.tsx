@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Editor from "./editor/Editor";
+import DropOverlay from "./features/file/DropOverlay";
 import FileBanner from "./features/file/FileBanner";
+import { useDropFiles } from "./features/file/useDropFiles";
 import SettingsMenu from "./features/settings/SettingsMenu";
 import { useSettings } from "./features/settings/useSettings";
 import { useDocumentWorkspace } from "./features/tabs/useDocumentWorkspace";
@@ -14,6 +16,7 @@ export default function App() {
   const workspace = useDocumentWorkspace({
     autosaveEnabled: settings.settings.autosaveEnabled,
   });
+  const dragging = useDropFiles(workspace.openPaths);
   const active = workspace.activeTab;
 
   useEffect(() => {
@@ -72,6 +75,7 @@ export default function App() {
         />
         <Editor workspace={workspace} />
       </main>
+      {dragging ? <DropOverlay /> : null}
     </div>
   );
 }

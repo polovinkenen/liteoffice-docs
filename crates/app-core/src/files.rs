@@ -34,6 +34,10 @@ pub fn read_text(path: &Path, max_bytes: u64) -> AppResult<String> {
 }
 
 pub fn write_text_atomic(path: &Path, text: &str) -> AppResult<()> {
+    write_bytes_atomic(path, text.as_bytes())
+}
+
+pub fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> AppResult<()> {
     let parent = path.parent().ok_or_else(|| {
         AppError::InvalidDocument(format!(
             "не удалось определить каталог для {}",
@@ -42,7 +46,7 @@ pub fn write_text_atomic(path: &Path, text: &str) -> AppResult<()> {
     })?;
 
     let mut temp = NamedTempFile::new_in(parent)?;
-    temp.write_all(text.as_bytes())?;
+    temp.write_all(bytes)?;
     temp.flush()?;
     temp.persist(path)
         .map_err(|error| AppError::Io(error.error))?;

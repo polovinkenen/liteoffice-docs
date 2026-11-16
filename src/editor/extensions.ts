@@ -1,6 +1,5 @@
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import Highlight from "@tiptap/extension-highlight";
-import Image from "@tiptap/extension-image";
 import { TableKit } from "@tiptap/extension-table";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyleKit } from "@tiptap/extension-text-style";
@@ -8,6 +7,7 @@ import { CharacterCount, Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { ru } from "../i18n/ru";
 import { countWords } from "../lib/document";
+import { AssetImage } from "./extensions/assetImage";
 import { PageBreak } from "./extensions/pageBreak";
 import { ParagraphFormat } from "./extensions/paragraphFormat";
 import { SearchHighlight } from "./extensions/searchHighlight";
@@ -27,7 +27,7 @@ export function createEditorExtensions() {
     TableKit.configure({
       table: { resizable: false },
     }),
-    Image.configure({
+    AssetImage.configure({
       inline: true,
       allowBase64: true,
     }),
