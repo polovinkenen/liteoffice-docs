@@ -141,6 +141,57 @@ mod tests {
     }
 
     #[test]
+    fn saves_table_cell_changes_to_markdown() {
+        let directory = tempfile::tempdir().expect("временный каталог");
+        let path = directory.path().join("Новый.md");
+        let path_string = path.to_string_lossy().into_owned();
+        let document: PmDoc = serde_json::from_value(json!({
+            "type": "doc",
+            "content": [{
+                "type": "table",
+                "content": [
+                    {
+                        "type": "tableRow",
+                        "content": [
+                            {
+                                "type": "tableHeader",
+                                "attrs": { "colspan": 1, "rowspan": 1 },
+                                "content": [{
+                                    "type": "paragraph",
+                                    "content": [{ "type": "text", "text": "Колонка" }]
+                                }]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "tableRow",
+                        "content": [
+                            {
+                                "type": "tableCell",
+                                "attrs": { "colspan": 1, "rowspan": 1 },
+                                "content": [{
+                                    "type": "paragraph",
+                                    "content": [{ "type": "text", "text": "изменено" }]
+                                }]
+                            }
+                        ]
+                    }
+                ]
+            }]
+        }))
+        .expect("документ");
+
+        save_document_sync(path_string.clone(), document).expect("сохранение");
+
+        let source = std::fs::read_to_string(&path).expect("чтение");
+        assert!(source.contains("изменено"), "{source}");
+
+        let opened = open_document_sync(path_string).expect("открытие");
+        let text = serde_json::to_string(&opened.document).expect("json");
+        assert!(text.contains("изменено"), "{text}");
+    }
+
+    #[test]
     fn rejects_unsupported_extension() {
         let directory = tempfile::tempdir().expect("временный каталог");
         let path = directory.path().join("документ.odt");

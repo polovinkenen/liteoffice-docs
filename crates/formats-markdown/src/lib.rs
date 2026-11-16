@@ -200,11 +200,12 @@ fn convert_table_cell<'a>(
     is_header: bool,
     warnings: &mut WarningSink,
 ) -> PmNode {
-    let mut content = convert_blocks(node, warnings);
-
-    if content.is_empty() {
-        content.push(PmNode::paragraph());
-    }
+    let inline = convert_inline_children(node, &[], warnings);
+    let content = if inline.is_empty() {
+        vec![PmNode::paragraph()]
+    } else {
+        vec![PmNode::with_content("paragraph", inline)]
+    };
 
     let mut cell = PmNode::with_content(
         if is_header {
@@ -793,6 +794,10 @@ mod tests {
         assert_eq!(table.content.len(), 2);
         assert_eq!(table.content[0].content[0].node_type, "tableHeader");
         assert_eq!(table.content[1].content[0].node_type, "tableCell");
+        assert_eq!(node_text(&table.content[0].content[0]), "Имя");
+        assert_eq!(node_text(&table.content[0].content[1]), "Значение");
+        assert_eq!(node_text(&table.content[1].content[0]), "a");
+        assert_eq!(node_text(&table.content[1].content[1]), "1");
     }
 
     #[test]
@@ -938,6 +943,14 @@ mod tests {
         let restored = read(&write(&original.document).text);
 
         assert_eq!(restored.document, original.document);
+        assert_eq!(
+            node_text(&restored.document.content[0].content[1].content[0]),
+            "1"
+        );
+        assert_eq!(
+            node_text(&restored.document.content[0].content[1].content[1]),
+            "2"
+        );
     }
 
     #[test]
