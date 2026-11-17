@@ -1,0 +1,365 @@
+{
+  "content": [
+    {
+      "attrs": {
+        "spaceAfter": 16
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times",
+                "fontSize": "24pt"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "Заголовок",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "spaceAfter": 12
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "Абзац с ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "жирным",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": ", ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "type": "italic"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "курсивом",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": ", ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "type": "underline"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "подчёркнутым",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": ", ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "type": "strike"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "зачёркнутым",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": " и ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "type": "underline"
+            },
+            {
+              "attrs": {
+                "color": "#0000e9",
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "ссылкой",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": ".",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "indent": 1
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "•\tПервый",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "indent": 1
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "•\tВторой",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "indent": 2
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "◦\tВложенный",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "indent": 1
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "1\tРаз",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "indent": 1
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "2\tДва",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "textAlign": "center"
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "A",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "textAlign": "center"
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "type": "bold"
+            },
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "B",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "C",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "fontFamily": "Times"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "D",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    }
+  ],
+  "type": "doc"
+}

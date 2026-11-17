@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use wordlite_app_core::assets::AssetStore;
-use wordlite_app_core::files::{read_bytes, write_text_atomic, MAX_TEXT_FILE_BYTES};
+use wordlite_app_core::files::{read_bytes, write_bytes_atomic, MAX_TEXT_FILE_BYTES};
 use wordlite_app_core::{AppError, AppResult};
 use wordlite_docmodel::PmDoc;
 use wordlite_formats::{codec_for, DocumentFormat};
@@ -63,12 +63,9 @@ pub(crate) fn open_document_sync(path: String) -> AppResult<OpenedDocument> {
     let canonical = path_buf.canonicalize().unwrap_or_else(|_| path_buf.clone());
     let codec = codec_for(format);
     let bytes = read_bytes(&canonical, MAX_TEXT_FILE_BYTES)?;
-    let source = codec
-        .decode(&bytes)
-        .map_err(|error| AppError::InvalidDocument(format!("{}: {error}", canonical.display())))?;
     let imported = codec
-        .read(&source)
-        .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
+        .read_bytes(&bytes)
+        .map_err(|error| AppError::InvalidDocument(format!("{}: {error}", canonical.display())))?;
 
     imported
         .document
@@ -99,10 +96,10 @@ pub(crate) fn save_document_sync(path: String, document: PmDoc) -> AppResult<Sav
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
 
     let written = codec_for(format)
-        .write(&document)
+        .write_bytes(&document)
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
 
-    write_text_atomic(&path_buf, &written.text)?;
+    write_bytes_atomic(&path_buf, &written.bytes)?;
 
     tracing::info!(
         path = %path_buf.display(),
@@ -293,6 +290,47 @@ mod tests {
         let opened = open_document_sync(path_string).expect("открытие");
 
         assert_eq!(opened.format, "rtf");
+        assert_eq!(opened.document, document);
+        assert!(opened.warnings.is_empty());
+    }
+
+    #[test]
+    fn saves_and_reopens_docx_document() {
+        let directory = tempfile::tempdir().expect("временный каталог");
+        let path = directory.path().join("договор.docx");
+        let path_string = path.to_string_lossy().into_owned();
+        let document: PmDoc = serde_json::from_value(json!({
+            "type": "doc",
+            "content": [
+                {
+                    "type": "heading",
+                    "attrs": { "level": 1 },
+                    "content": [{ "type": "text", "text": "Договор" }]
+                },
+                {
+                    "type": "paragraph",
+                    "content": [
+                        { "type": "text", "text": "Текст " },
+                        {
+                            "type": "text",
+                            "text": "важный",
+                            "marks": [{ "type": "bold" }]
+                        }
+                    ]
+                }
+            ]
+        }))
+        .expect("документ");
+
+        let saved = save_document_sync(path_string.clone(), document.clone()).expect("сохранение");
+
+        assert_eq!(saved.format, "docx");
+        let bytes = std::fs::read(&path).expect("чтение");
+        assert!(bytes.starts_with(b"PK"), "не zip-архив");
+
+        let opened = open_document_sync(path_string).expect("открытие");
+
+        assert_eq!(opened.format, "docx");
         assert_eq!(opened.document, document);
         assert!(opened.warnings.is_empty());
     }

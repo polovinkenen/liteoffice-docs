@@ -8,10 +8,11 @@ pub enum DocumentFormat {
     Markdown,
     Html,
     Rtf,
+    Docx,
 }
 
 impl DocumentFormat {
-    pub const ALL: [Self; 4] = [Self::Txt, Self::Markdown, Self::Html, Self::Rtf];
+    pub const ALL: [Self; 5] = [Self::Txt, Self::Markdown, Self::Html, Self::Rtf, Self::Docx];
 
     pub fn from_path(path: &Path) -> Option<Self> {
         let extension = path.extension()?.to_str()?.to_ascii_lowercase();
@@ -27,6 +28,7 @@ impl DocumentFormat {
             Self::Markdown => "md",
             Self::Html => "html",
             Self::Rtf => "rtf",
+            Self::Docx => "docx",
         }
     }
 
@@ -36,6 +38,7 @@ impl DocumentFormat {
             Self::Markdown => "Markdown",
             Self::Html => "HTML",
             Self::Rtf => "RTF",
+            Self::Docx => "DOCX",
         }
     }
 
@@ -45,6 +48,7 @@ impl DocumentFormat {
             Self::Markdown => "md",
             Self::Html => "html",
             Self::Rtf => "rtf",
+            Self::Docx => "docx",
         }
     }
 
@@ -54,6 +58,7 @@ impl DocumentFormat {
             Self::Markdown => &["md", "markdown"],
             Self::Html => &["html", "htm"],
             Self::Rtf => &["rtf"],
+            Self::Docx => &["docx"],
         }
     }
 
@@ -84,6 +89,12 @@ pub struct WrittenDocument {
     pub warnings: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WrittenFile {
+    pub bytes: Vec<u8>,
+    pub warnings: Vec<String>,
+}
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum FormatError {
     #[error("не удалось прочитать документ: {0}")]
@@ -102,6 +113,20 @@ pub trait DocumentCodec: Send + Sync {
         })?;
 
         Ok(source.strip_prefix('\u{feff}').unwrap_or(source).to_owned())
+    }
+
+    fn read_bytes(&self, bytes: &[u8]) -> Result<ImportedDocument, FormatError> {
+        let source = self.decode(bytes)?;
+        self.read(&source)
+    }
+
+    fn write_bytes(&self, document: &PmDoc) -> Result<WrittenFile, FormatError> {
+        let written = self.write(document)?;
+
+        Ok(WrittenFile {
+            bytes: written.text.into_bytes(),
+            warnings: written.warnings,
+        })
     }
 }
 
@@ -231,6 +256,10 @@ mod tests {
             DocumentFormat::from_path(Path::new("Письмо.RTF")),
             Some(DocumentFormat::Rtf)
         );
+        assert_eq!(
+            DocumentFormat::from_path(Path::new("Договор.Docx")),
+            Some(DocumentFormat::Docx)
+        );
         assert_eq!(DocumentFormat::from_path(Path::new("документ.odt")), None);
     }
 
@@ -238,7 +267,7 @@ mod tests {
     fn lists_supported_extensions() {
         assert_eq!(
             DocumentFormat::supported_extensions(),
-            vec!["txt", "md", "markdown", "html", "htm", "rtf"]
+            vec!["txt", "md", "markdown", "html", "htm", "rtf", "docx"]
         );
     }
 

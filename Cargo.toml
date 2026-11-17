@@ -9,6 +9,7 @@ members = [
     "crates/formats-markdown",
     "crates/formats-html",
     "crates/formats-rtf",
+    "crates/formats-docx",
     "crates/formats",
 ]
 

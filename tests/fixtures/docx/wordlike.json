@@ -1,0 +1,257 @@
+{
+  "content": [
+    {
+      "attrs": {
+        "level": 1
+      },
+      "content": [
+        {
+          "text": "Заголовок",
+          "type": "text"
+        }
+      ],
+      "type": "heading"
+    },
+    {
+      "content": [
+        {
+          "marks": [
+            {
+              "type": "bold"
+            }
+          ],
+          "text": "Жирный",
+          "type": "text"
+        },
+        {
+          "text": " и ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "type": "italic"
+            }
+          ],
+          "text": "курсив",
+          "type": "text"
+        },
+        {
+          "text": ", ",
+          "type": "text"
+        },
+        {
+          "marks": [
+            {
+              "attrs": {
+                "class": null,
+                "href": "https://example.com",
+                "rel": null,
+                "target": null
+              },
+              "type": "link"
+            },
+            {
+              "type": "underline"
+            },
+            {
+              "attrs": {
+                "color": "#0000ff"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "ссылка",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "attrs": {
+        "indent": 1,
+        "lineHeight": "1.5",
+        "spaceAfter": 4,
+        "spaceBefore": 6,
+        "textAlign": "center"
+      },
+      "content": [
+        {
+          "marks": [
+            {
+              "attrs": {
+                "color": "#ff0000",
+                "fontFamily": "Georgia, serif",
+                "fontSize": "14pt"
+              },
+              "type": "textStyle"
+            }
+          ],
+          "text": "Оформленный",
+          "type": "text"
+        }
+      ],
+      "type": "paragraph"
+    },
+    {
+      "content": [
+        {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "Первый",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            },
+            {
+              "content": [
+                {
+                  "content": [
+                    {
+                      "content": [
+                        {
+                          "text": "Вложенный",
+                          "type": "text"
+                        }
+                      ],
+                      "type": "paragraph"
+                    }
+                  ],
+                  "type": "listItem"
+                }
+              ],
+              "type": "bulletList"
+            }
+          ],
+          "type": "listItem"
+        }
+      ],
+      "type": "bulletList"
+    },
+    {
+      "content": [
+        {
+          "content": [
+            {
+              "content": [
+                {
+                  "text": "Нумерованный",
+                  "type": "text"
+                }
+              ],
+              "type": "paragraph"
+            }
+          ],
+          "type": "listItem"
+        }
+      ],
+      "type": "orderedList"
+    },
+    {
+      "content": [
+        {
+          "content": [
+            {
+              "attrs": {
+                "colspan": 2,
+                "colwidth": null,
+                "rowspan": 1
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "Заголовок таблицы",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableHeader"
+            }
+          ],
+          "type": "tableRow"
+        },
+        {
+          "content": [
+            {
+              "attrs": {
+                "colspan": 1,
+                "colwidth": null,
+                "rowspan": 2
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "A",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "colspan": 1,
+                "colwidth": null,
+                "rowspan": 1
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "B",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        },
+        {
+          "content": [
+            {
+              "attrs": {
+                "colspan": 1,
+                "colwidth": null,
+                "rowspan": 1
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "C",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "type": "pageBreak"
+    },
+    {
+      "type": "horizontalRule"
+    }
+  ],
+  "type": "doc"
+}
