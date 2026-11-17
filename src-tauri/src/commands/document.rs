@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use wordlite_app_core::assets::AssetStore;
-use wordlite_app_core::files::{read_text, write_text_atomic, MAX_TEXT_FILE_BYTES};
+use wordlite_app_core::files::{read_bytes, write_text_atomic, MAX_TEXT_FILE_BYTES};
 use wordlite_app_core::{AppError, AppResult};
 use wordlite_docmodel::PmDoc;
 use wordlite_formats::{codec_for, DocumentFormat};
@@ -61,8 +61,12 @@ pub(crate) fn open_document_sync(path: String) -> AppResult<OpenedDocument> {
     let path_buf = PathBuf::from(&path);
     let format = format_for(&path_buf)?;
     let canonical = path_buf.canonicalize().unwrap_or_else(|_| path_buf.clone());
-    let source = read_text(&canonical, MAX_TEXT_FILE_BYTES)?;
-    let imported = codec_for(format)
+    let codec = codec_for(format);
+    let bytes = read_bytes(&canonical, MAX_TEXT_FILE_BYTES)?;
+    let source = codec
+        .decode(&bytes)
+        .map_err(|error| AppError::InvalidDocument(format!("{}: {error}", canonical.display())))?;
+    let imported = codec
         .read(&source)
         .map_err(|error| AppError::InvalidDocument(error.to_string()))?;
 
@@ -247,6 +251,48 @@ mod tests {
         let opened = open_document_sync(path_string).expect("открытие");
 
         assert_eq!(opened.format, "html");
+        assert_eq!(opened.document, document);
+        assert!(opened.warnings.is_empty());
+    }
+
+    #[test]
+    fn saves_and_reopens_rtf_document() {
+        let directory = tempfile::tempdir().expect("временный каталог");
+        let path = directory.path().join("письмо.rtf");
+        let path_string = path.to_string_lossy().into_owned();
+        let document: PmDoc = serde_json::from_value(json!({
+            "type": "doc",
+            "content": [
+                {
+                    "type": "heading",
+                    "attrs": { "level": 1 },
+                    "content": [{ "type": "text", "text": "Заголовок" }]
+                },
+                {
+                    "type": "paragraph",
+                    "attrs": { "textAlign": "center" },
+                    "content": [
+                        { "type": "text", "text": "Текст " },
+                        {
+                            "type": "text",
+                            "text": "важный",
+                            "marks": [{ "type": "bold" }]
+                        }
+                    ]
+                }
+            ]
+        }))
+        .expect("документ");
+
+        let saved = save_document_sync(path_string.clone(), document.clone()).expect("сохранение");
+
+        assert_eq!(saved.format, "rtf");
+        let source = std::fs::read_to_string(&path).expect("чтение");
+        assert!(source.starts_with("{\\rtf1"), "{source}");
+
+        let opened = open_document_sync(path_string).expect("открытие");
+
+        assert_eq!(opened.format, "rtf");
         assert_eq!(opened.document, document);
         assert!(opened.warnings.is_empty());
     }

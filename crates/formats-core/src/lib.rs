@@ -7,10 +7,11 @@ pub enum DocumentFormat {
     Txt,
     Markdown,
     Html,
+    Rtf,
 }
 
 impl DocumentFormat {
-    pub const ALL: [Self; 3] = [Self::Txt, Self::Markdown, Self::Html];
+    pub const ALL: [Self; 4] = [Self::Txt, Self::Markdown, Self::Html, Self::Rtf];
 
     pub fn from_path(path: &Path) -> Option<Self> {
         let extension = path.extension()?.to_str()?.to_ascii_lowercase();
@@ -25,6 +26,7 @@ impl DocumentFormat {
             Self::Txt => "txt",
             Self::Markdown => "md",
             Self::Html => "html",
+            Self::Rtf => "rtf",
         }
     }
 
@@ -33,6 +35,7 @@ impl DocumentFormat {
             Self::Txt => "Текст",
             Self::Markdown => "Markdown",
             Self::Html => "HTML",
+            Self::Rtf => "RTF",
         }
     }
 
@@ -41,6 +44,7 @@ impl DocumentFormat {
             Self::Txt => "txt",
             Self::Markdown => "md",
             Self::Html => "html",
+            Self::Rtf => "rtf",
         }
     }
 
@@ -49,6 +53,7 @@ impl DocumentFormat {
             Self::Txt => &["txt"],
             Self::Markdown => &["md", "markdown"],
             Self::Html => &["html", "htm"],
+            Self::Rtf => &["rtf"],
         }
     }
 
@@ -90,6 +95,14 @@ pub enum FormatError {
 pub trait DocumentCodec: Send + Sync {
     fn read(&self, source: &str) -> Result<ImportedDocument, FormatError>;
     fn write(&self, document: &PmDoc) -> Result<WrittenDocument, FormatError>;
+
+    fn decode(&self, bytes: &[u8]) -> Result<String, FormatError> {
+        let source = std::str::from_utf8(bytes).map_err(|error| {
+            FormatError::Parse(format!("файл должен быть в кодировке UTF-8: {error}"))
+        })?;
+
+        Ok(source.strip_prefix('\u{feff}').unwrap_or(source).to_owned())
+    }
 }
 
 pub fn node_text(node: &PmNode) -> String {
@@ -214,6 +227,10 @@ mod tests {
             DocumentFormat::from_path(Path::new("Страница.HTM")),
             Some(DocumentFormat::Html)
         );
+        assert_eq!(
+            DocumentFormat::from_path(Path::new("Письмо.RTF")),
+            Some(DocumentFormat::Rtf)
+        );
         assert_eq!(DocumentFormat::from_path(Path::new("документ.odt")), None);
     }
 
@@ -221,7 +238,7 @@ mod tests {
     fn lists_supported_extensions() {
         assert_eq!(
             DocumentFormat::supported_extensions(),
-            vec!["txt", "md", "markdown", "html", "htm"]
+            vec!["txt", "md", "markdown", "html", "htm", "rtf"]
         );
     }
 

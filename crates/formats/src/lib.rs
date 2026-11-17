@@ -7,6 +7,7 @@ pub fn codec_for(format: DocumentFormat) -> &'static dyn DocumentCodec {
         DocumentFormat::Txt => wordlite_formats_txt::codec(),
         DocumentFormat::Markdown => wordlite_formats_markdown::codec(),
         DocumentFormat::Html => wordlite_formats_html::codec(),
+        DocumentFormat::Rtf => wordlite_formats_rtf::codec(),
     }
 }
 

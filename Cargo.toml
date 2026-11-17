@@ -8,6 +8,7 @@ members = [
     "crates/formats-txt",
     "crates/formats-markdown",
     "crates/formats-html",
+    "crates/formats-rtf",
     "crates/formats",
 ]
 

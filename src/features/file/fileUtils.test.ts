@@ -14,6 +14,7 @@ describe("formatFromPath", () => {
     expect(formatFromPath("C:\\docs\\письмо.txt")).toBe("txt");
     expect(formatFromPath("Страница.HTML")).toBe("html");
     expect(formatFromPath("index.htm")).toBe("html");
+    expect(formatFromPath("Письмо.RTF")).toBe("rtf");
   });
 
   it("возвращает null для неизвестных файлов", () => {

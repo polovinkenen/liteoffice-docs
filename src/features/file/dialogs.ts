@@ -12,7 +12,7 @@ function ensureTauri(): void {
 const OPEN_FILTERS = [
   {
     name: "Документы",
-    extensions: ["md", "markdown", "txt", "html", "htm"],
+    extensions: ["md", "markdown", "txt", "html", "htm", "rtf"],
   },
 ];
 
@@ -26,6 +26,10 @@ const SAVE_FILTERS = [
     extensions: ["html"],
   },
   {
+    name: "RTF",
+    extensions: ["rtf"],
+  },
+  {
     name: "Текст",
     extensions: ["txt"],
   },
@@ -34,6 +38,7 @@ const SAVE_FILTERS = [
 const DEFAULT_NAMES: Record<DocumentFormat, string> = {
   md: "Без названия.md",
   html: "Без названия.html",
+  rtf: "Без названия.rtf",
   txt: "Без названия.txt",
 };
 
