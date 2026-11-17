@@ -1,13 +1,13 @@
 [package]
-name = "wordlite"
+name = "wlite"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Кроссплатформенный редактор документов Wordlite"
+description = "Кроссплатформенный редактор документов WLite"
 
 [lib]
-name = "wordlite_lib"
+name = "wlite_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -26,9 +26,9 @@ serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-wordlite-app-core = { path = "../crates/app-core" }
-wordlite-docmodel = { path = "../crates/docmodel" }
-wordlite-formats = { path = "../crates/formats" }
+wlite-app-core = { path = "../crates/app-core" }
+wlite-docmodel = { path = "../crates/docmodel" }
+wlite-formats = { path = "../crates/formats" }
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use wordlite_docmodel::{PmDoc, PmNode};
+use wlite_docmodel::{PmDoc, PmNode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocumentFormat {
@@ -236,7 +236,7 @@ impl Default for WarningSink {
 mod tests {
     use super::*;
     use serde_json::json;
-    use wordlite_docmodel::PmMark;
+    use wlite_docmodel::PmMark;
 
     #[test]
     fn detects_format_by_extension_case_insensitively() {

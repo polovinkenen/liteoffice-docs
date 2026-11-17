@@ -8,8 +8,8 @@ use std::sync::atomic::Ordering;
 
 use serde::Serialize;
 use tauri::State;
-use wordlite_app_core::{AppError, AppResult};
-use wordlite_docmodel::PmDoc;
+use wlite_app_core::{AppError, AppResult};
+use wlite_docmodel::PmDoc;
 
 use crate::AppState;
 
@@ -51,7 +51,7 @@ pub fn ping() -> &'static str {
 #[tauri::command]
 pub fn app_info() -> AppInfo {
     AppInfo {
-        name: "Wordlite",
+        name: "WLite",
         version: env!("CARGO_PKG_VERSION"),
         platform: std::env::consts::OS,
         arch: std::env::consts::ARCH,

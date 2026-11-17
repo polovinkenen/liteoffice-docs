@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use wordlite_docmodel::PmDoc;
+use wlite_docmodel::PmDoc;
 
 fn fixtures_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/docx")
@@ -29,7 +29,7 @@ fn docx_fixtures_round_trip() {
 
     for document in documents {
         let bytes = fs::read(&document).expect("чтение фикстуры");
-        let imported = wordlite_formats_docx::codec()
+        let imported = wlite_formats_docx::codec()
             .read_bytes(&bytes)
             .expect("импорт фикстуры");
         let actual = serde_json::to_value(&imported.document).expect("json");
@@ -52,10 +52,10 @@ fn docx_fixtures_round_trip() {
             document.display()
         );
 
-        let written = wordlite_formats_docx::codec()
+        let written = wlite_formats_docx::codec()
             .write_bytes(&imported.document)
             .expect("экспорт фикстуры");
-        let reopened = wordlite_formats_docx::codec()
+        let reopened = wlite_formats_docx::codec()
             .read_bytes(&written.bytes)
             .expect("повторный импорт");
 

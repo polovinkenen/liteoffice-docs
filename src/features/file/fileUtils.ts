@@ -48,7 +48,7 @@ export function basename(path: string): string {
 
 export function documentTitle(fileName: string, dirty: boolean): string {
   const name = fileName.trim() || "Без названия";
-  return `Wordlite — ${name}${dirty ? " *" : ""}`;
+  return `WLite — ${name}${dirty ? " *" : ""}`;
 }
 
 function hasParagraphFormatting(node: JSONContent): boolean {

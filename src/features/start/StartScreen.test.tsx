@@ -28,7 +28,7 @@ describe("StartScreen", () => {
       />,
     );
 
-    expect(screen.getByText("Добро пожаловать в Wordlite")).toBeInTheDocument();
+    expect(screen.getByText("Добро пожаловать в WLite")).toBeInTheDocument();
     expect(screen.getByText("заметка.md")).toBeInTheDocument();
     expect(screen.getByText("письмо.txt")).toBeInTheDocument();
   });

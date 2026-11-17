@@ -2,11 +2,11 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
-use wordlite_app_core::assets::AssetStore;
-use wordlite_app_core::files::{read_bytes, write_bytes_atomic, MAX_TEXT_FILE_BYTES};
-use wordlite_app_core::{AppError, AppResult};
-use wordlite_docmodel::PmDoc;
-use wordlite_formats::{codec_for, DocumentFormat};
+use wlite_app_core::assets::AssetStore;
+use wlite_app_core::files::{read_bytes, write_bytes_atomic, MAX_TEXT_FILE_BYTES};
+use wlite_app_core::{AppError, AppResult};
+use wlite_docmodel::PmDoc;
+use wlite_formats::{codec_for, DocumentFormat};
 
 use super::run_blocking;
 

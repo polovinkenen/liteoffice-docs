@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use serde_json::{json, Map, Value};
-use wordlite_docmodel::{PmDoc, PmMark, PmNode};
-use wordlite_formats_core::{FormatError, ImportedDocument, WarningSink};
+use wlite_docmodel::{PmDoc, PmMark, PmNode};
+use wlite_formats_core::{FormatError, ImportedDocument, WarningSink};
 
 use crate::lexer::{tokenize, Token};
 use crate::style::{

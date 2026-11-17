@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use wordlite_docmodel::PmDoc;
+use wlite_docmodel::PmDoc;
 
 use crate::files::{read_text, write_text_atomic};
 use crate::{AppError, AppResult};
@@ -226,7 +226,7 @@ fn now_millis() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wordlite_docmodel::PmNode;
+    use wlite_docmodel::PmNode;
 
     fn document(text: &str) -> PmDoc {
         PmDoc {

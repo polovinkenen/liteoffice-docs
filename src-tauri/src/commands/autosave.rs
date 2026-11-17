@@ -1,7 +1,7 @@
 use tauri::{AppHandle, Manager};
-use wordlite_app_core::autosave::{AutosaveRecord, AutosaveStore, AutosaveSummary};
-use wordlite_app_core::{AppError, AppResult};
-use wordlite_docmodel::PmDoc;
+use wlite_app_core::autosave::{AutosaveRecord, AutosaveStore, AutosaveSummary};
+use wlite_app_core::{AppError, AppResult};
+use wlite_docmodel::PmDoc;
 
 use super::run_blocking;
 

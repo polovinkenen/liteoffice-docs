@@ -2,8 +2,8 @@ mod read;
 mod style;
 mod write;
 
-use wordlite_docmodel::PmDoc;
-use wordlite_formats_core::{DocumentCodec, FormatError, ImportedDocument, WrittenDocument};
+use wlite_docmodel::PmDoc;
+use wlite_formats_core::{DocumentCodec, FormatError, ImportedDocument, WrittenDocument};
 
 pub struct HtmlCodec;
 

@@ -1,6 +1,6 @@
-[![CI](https://github.com/polovinkenen/wordlite/actions/workflows/ci.yml/badge.svg)](https://github.com/polovinkenen/wordlite/actions/workflows/ci.yml)
+[![CI](https://github.com/polovinkenen/wlite/actions/workflows/ci.yml/badge.svg)](https://github.com/polovinkenen/wlite/actions/workflows/ci.yml)
 
-# Wordlite
+# WLite
 
 Кроссплатформенный (macOS, Linux, Windows) редактор документов — аналог Word для
 повседневных задач. Ядро на Rust, интерфейс на React и TipTap, оболочка на Tauri 2.
@@ -66,7 +66,7 @@ PDF — в разработке.
 Файловые действия и работа с буфером обмена находятся в системном меню (на macOS —
 строка меню сверху экрана, на Linux и Windows — меню в верхней части окна):
 
-- **Wordlite** — «О Wordlite», «Скрыть», «Выйти из Wordlite» (`Cmd+Q` с защитой
+- **WLite** — «О WLite», «Скрыть», «Выйти из WLite» (`Cmd+Q` с защитой
   несохранённых изменений);
 - **Файл** — «Новый» (`Cmd+N`), «Открыть…» (`Cmd+O`), «Недавние» (последние
   открытые и сохранённые документы), «Сохранить» (`Cmd+S`), «Сохранить как…»
@@ -218,26 +218,26 @@ Workflows:
 
 Скачать сборку:
 - из GitHub Releases — готовые файлы после релиза;
-- из Actions → нужный run → Artifacts (`wordlite-macos-arm64`,
-  `wordlite-windows-x64`, `wordlite-linux-x64`).
+- из Actions → нужный run → Artifacts (`wlite-macos-arm64`,
+  `wlite-windows-x64`, `wlite-linux-x64`).
 
 Локальная сборка macOS:
 ```bash
 npx tauri build --target aarch64-apple-darwin --bundles dmg
-# target/aarch64-apple-darwin/release/bundle/dmg/Wordlite_0.1.0_aarch64.dmg
+# target/aarch64-apple-darwin/release/bundle/dmg/WLite_0.1.0_aarch64.dmg
 ```
 
 Релиз:
 ```bash
-git tag -a v0.1.0 -m "Wordlite 0.1.0"
+git tag -a v0.1.0 -m "WLite 0.1.0"
 git push origin v0.1.0
 ```
 
 Подписи пока не настроены, поэтому установщики неподписанные:
-- macOS: правый клик по `Wordlite.app` → «Открыть» либо
-  `xattr -dr com.apple.quarantine /Applications/Wordlite.app`;
+- macOS: правый клик по `WLite.app` → «Открыть» либо
+  `xattr -dr com.apple.quarantine /Applications/WLite.app`;
 - Windows: SmartScreen → «Подробнее» → «Выполнить всё равно»;
-- Linux: `sudo dpkg -i wordlite_*.deb` или `chmod +x Wordlite_*.AppImage`.
+- Linux: `sudo dpkg -i wlite_*.deb` или `chmod +x WLite_*.AppImage`.
 
 ## Структура
 

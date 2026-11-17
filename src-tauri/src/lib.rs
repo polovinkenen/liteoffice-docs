@@ -15,7 +15,7 @@ pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "wordlite=info".into()),
+                .unwrap_or_else(|_| "wlite=info".into()),
         )
         .init();
 
@@ -60,7 +60,7 @@ pub fn run() {
             commands::image::load_asset
         ])
         .build(tauri::generate_context!())
-        .expect("не удалось собрать Wordlite");
+        .expect("не удалось собрать WLite");
 
     app.run(|app_handle, event| {
         if let RunEvent::ExitRequested { api, code, .. } = event {

@@ -1,6 +1,6 @@
 use tauri::{AppHandle, Manager};
-use wordlite_app_core::recent::{RecentEntry, RecentStore};
-use wordlite_app_core::{AppError, AppResult};
+use wlite_app_core::recent::{RecentEntry, RecentStore};
+use wlite_app_core::{AppError, AppResult};
 
 use super::run_blocking;
 

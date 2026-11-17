@@ -3,8 +3,8 @@ mod parser;
 mod style;
 mod writer;
 
-use wordlite_docmodel::PmDoc;
-use wordlite_formats_core::{DocumentCodec, FormatError, ImportedDocument, WrittenDocument};
+use wlite_docmodel::PmDoc;
+use wlite_formats_core::{DocumentCodec, FormatError, ImportedDocument, WrittenDocument};
 
 pub struct RtfCodec;
 

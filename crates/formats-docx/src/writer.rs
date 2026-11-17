@@ -10,8 +10,8 @@ use docx_rs::{
     Shading, SpecialIndentType, Start, Style, StyleType, Styles, Table, TableCell, TableRow,
     VMergeType,
 };
-use wordlite_docmodel::{PmDoc, PmNode};
-use wordlite_formats_core::{FormatError, WarningSink, WrittenFile};
+use wlite_docmodel::{PmDoc, PmNode};
+use wlite_formats_core::{FormatError, WarningSink, WrittenFile};
 
 use crate::units::{
     docx_font_name, font_size_half_points, hex_color, line_height_twips, parse_color,
@@ -164,7 +164,7 @@ impl WriteContext {
                 self.warnings
                     .warn(format!("Узел «{}» не поддерживается DOCX.", node.node_type));
                 let mut paragraph = Paragraph::new();
-                let text = wordlite_formats_core::node_text(node);
+                let text = wlite_formats_core::node_text(node);
 
                 if !text.is_empty() {
                     paragraph = paragraph.add_run(Run::new().add_text(text));
@@ -636,7 +636,7 @@ impl WriteContext {
                 _ => {
                     self.warnings
                         .warn("Вложенные таблицы и списки внутри ячеек DOCX упрощаются до текста.");
-                    let text = wordlite_formats_core::node_text(child);
+                    let text = wlite_formats_core::node_text(child);
                     let mut paragraph = Paragraph::new();
 
                     if !text.is_empty() {
@@ -652,7 +652,7 @@ impl WriteContext {
     }
 
     fn build_code_block(&mut self, node: &PmNode) -> Paragraph {
-        let text = wordlite_formats_core::node_text(node);
+        let text = wlite_formats_core::node_text(node);
         let mut paragraph = Paragraph::new();
         let lines: Vec<&str> = text.split('\n').collect();
 

@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use wordlite_docmodel::{PmDoc, PmNode};
+use wlite_docmodel::{PmDoc, PmNode};
 
 use crate::files::{read_bytes, write_bytes_atomic};
 use crate::{AppError, AppResult};

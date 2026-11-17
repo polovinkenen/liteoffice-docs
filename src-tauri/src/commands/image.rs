@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use tauri::{AppHandle, Manager};
-use wordlite_app_core::assets::{AssetStore, StoredAsset, MAX_ASSET_BYTES};
-use wordlite_app_core::{AppError, AppResult};
+use wlite_app_core::assets::{AssetStore, StoredAsset, MAX_ASSET_BYTES};
+use wlite_app_core::{AppError, AppResult};
 
 use super::run_blocking;
 

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use serde_json::Value;
-use wordlite_docmodel::{PmDoc, PmNode};
-use wordlite_formats_core::{FormatError, WarningSink, WrittenDocument};
+use wlite_docmodel::{PmDoc, PmNode};
+use wlite_formats_core::{FormatError, WarningSink, WrittenDocument};
 
 use crate::style::{
     font_size_half_points, line_height_twips, parse_color, rtf_font_name, DEFAULT_FONT_NAME,
@@ -328,7 +328,7 @@ impl WriteContext {
             _ => {
                 self.warnings
                     .warn(format!("Узел «{}» не поддерживается RTF.", node.node_type));
-                let text = wordlite_formats_core::node_text(node);
+                let text = wlite_formats_core::node_text(node);
                 let mut paragraph = PmNode::with_content("paragraph", Vec::new());
                 if !text.is_empty() {
                     paragraph.content.push(PmNode::text(text));
@@ -436,7 +436,7 @@ impl WriteContext {
 
     fn write_code_block(&mut self, node: &PmNode, output: &mut String) {
         let font = self.fonts.get("Courier New").unwrap_or(0);
-        let text = wordlite_formats_core::node_text(node);
+        let text = wlite_formats_core::node_text(node);
         output.push_str("\\pard");
         output.push_str(&format!("\\f{font} "));
 
@@ -574,7 +574,7 @@ impl WriteContext {
                     self.write_inline_children(child, output);
                 }
                 _ => {
-                    let text = wordlite_formats_core::node_text(child);
+                    let text = wlite_formats_core::node_text(child);
                     write_escaped(output, &text);
                 }
             }

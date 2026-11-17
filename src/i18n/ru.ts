@@ -1,5 +1,5 @@
 export const ru = {
-  appName: "Wordlite",
+  appName: "WLite",
   untitled: "Без названия",
   browserMode: "Режим браузера: Rust-ядро недоступно",
   editorPlaceholder: "Начните печатать…",
@@ -122,7 +122,7 @@ export const ru = {
     replaced: (count: number) => `Заменено: ${count}`,
   },
   autosave: {
-    restoreTitle: "Wordlite",
+    restoreTitle: "WLite",
     restoreMessage: (count: number) =>
       count === 1
         ? "Найден несохранённый документ. Восстановить его?"
@@ -132,7 +132,7 @@ export const ru = {
   },
   start: {
     label: "Начало работы",
-    title: "Добро пожаловать в Wordlite",
+    title: "Добро пожаловать в WLite",
     subtitle: "Создайте новый документ или откройте недавний.",
     newDocument: "Новый документ",
     open: "Открыть…",

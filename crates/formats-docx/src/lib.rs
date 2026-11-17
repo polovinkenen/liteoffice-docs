@@ -4,8 +4,8 @@ mod writer;
 
 use std::io::Cursor;
 
-use wordlite_docmodel::PmDoc;
-use wordlite_formats_core::{
+use wlite_docmodel::PmDoc;
+use wlite_formats_core::{
     DocumentCodec, FormatError, ImportedDocument, WrittenDocument, WrittenFile,
 };
 
@@ -91,7 +91,7 @@ fn validate_archive(bytes: &[u8]) -> Result<(), FormatError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wordlite_docmodel::PmNode;
+    use wlite_docmodel::PmNode;
 
     fn document() -> PmDoc {
         PmDoc {

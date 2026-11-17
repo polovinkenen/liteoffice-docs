@@ -7,8 +7,8 @@ use docx_rs::{
     RunChild, TableCellContent, TableChild, TableRowChild,
 };
 use serde_json::{json, Map, Value};
-use wordlite_docmodel::{PmDoc, PmMark, PmNode};
-use wordlite_formats_core::{FormatError, ImportedDocument, WarningSink};
+use wlite_docmodel::{PmDoc, PmMark, PmNode};
+use wlite_formats_core::{FormatError, ImportedDocument, WarningSink};
 
 use crate::units::{
     canonical_font_family, font_size_points, format_color, line_height_from_twips, parse_color,

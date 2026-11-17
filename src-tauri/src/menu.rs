@@ -4,7 +4,7 @@ use tauri::menu::{
     Menu, MenuBuilder, MenuEvent, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime};
-use wordlite_app_core::recent::{RecentEntry, RecentStore};
+use wlite_app_core::recent::{RecentEntry, RecentStore};
 
 pub const RECENT_PREFIX: &str = "recent:";
 pub const RECENT_CLEAR: &str = "recent:clear";
@@ -36,7 +36,7 @@ pub const EVENT_APP_QUIT: &str = "menu:app:quit";
 pub const EVENT_APP_QUIT_REQUESTED: &str = "menu:app:quit-requested";
 
 pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
-    let quit = MenuItemBuilder::with_id(APP_QUIT, "Выйти из Wordlite")
+    let quit = MenuItemBuilder::with_id(APP_QUIT, "Выйти из WLite")
         .accelerator("CmdOrCtrl+Q")
         .build(app)?;
 
@@ -119,14 +119,14 @@ fn build_app_submenu<R: Runtime>(
     app: &AppHandle<R>,
     quit: &tauri::menu::MenuItem<R>,
 ) -> tauri::Result<tauri::menu::Submenu<R>> {
-    let submenu = SubmenuBuilder::new(app, "Wordlite").about_with_text("О Wordlite", None);
+    let submenu = SubmenuBuilder::new(app, "WLite").about_with_text("О WLite", None);
 
     #[cfg(target_os = "macos")]
     let submenu = submenu
         .separator()
         .services_with_text("Службы")
         .separator()
-        .hide_with_text("Скрыть Wordlite")
+        .hide_with_text("Скрыть WLite")
         .hide_others_with_text("Скрыть остальные")
         .show_all_with_text("Показать все");
 

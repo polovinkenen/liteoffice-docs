@@ -5395,7 +5395,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
-name = "wordlite"
+name = "wlite"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
@@ -5412,13 +5412,13 @@ dependencies = [
  "tempfile",
  "tracing",
  "tracing-subscriber",
- "wordlite-app-core",
- "wordlite-docmodel",
- "wordlite-formats",
+ "wlite-app-core",
+ "wlite-docmodel",
+ "wlite-formats",
 ]
 
 [[package]]
-name = "wordlite-app-core"
+name = "wlite-app-core"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
@@ -5426,11 +5426,11 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
- "wordlite-docmodel",
+ "wlite-docmodel",
 ]
 
 [[package]]
-name = "wordlite-docmodel"
+name = "wlite-docmodel"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -5439,79 +5439,79 @@ dependencies = [
 ]
 
 [[package]]
-name = "wordlite-formats"
+name = "wlite-formats"
 version = "0.1.0"
 dependencies = [
- "wordlite-docmodel",
- "wordlite-formats-core",
- "wordlite-formats-docx",
- "wordlite-formats-html",
- "wordlite-formats-markdown",
- "wordlite-formats-rtf",
- "wordlite-formats-txt",
+ "wlite-docmodel",
+ "wlite-formats-core",
+ "wlite-formats-docx",
+ "wlite-formats-html",
+ "wlite-formats-markdown",
+ "wlite-formats-rtf",
+ "wlite-formats-txt",
 ]
 
 [[package]]
-name = "wordlite-formats-core"
+name = "wlite-formats-core"
 version = "0.1.0"
 dependencies = [
  "serde_json",
  "thiserror 2.0.21",
- "wordlite-docmodel",
+ "wlite-docmodel",
 ]
 
 [[package]]
-name = "wordlite-formats-docx"
+name = "wlite-formats-docx"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "docx-rs",
  "serde_json",
  "tempfile",
- "wordlite-docmodel",
- "wordlite-formats-core",
+ "wlite-docmodel",
+ "wlite-formats-core",
  "zip",
 ]
 
 [[package]]
-name = "wordlite-formats-html"
+name = "wlite-formats-html"
 version = "0.1.0"
 dependencies = [
  "ego-tree",
  "scraper",
  "serde_json",
- "wordlite-docmodel",
- "wordlite-formats-core",
+ "wlite-docmodel",
+ "wlite-formats-core",
 ]
 
 [[package]]
-name = "wordlite-formats-markdown"
+name = "wlite-formats-markdown"
 version = "0.1.0"
 dependencies = [
  "comrak",
  "serde_json",
- "wordlite-docmodel",
- "wordlite-formats-core",
+ "wlite-docmodel",
+ "wlite-formats-core",
 ]
 
 [[package]]
-name = "wordlite-formats-rtf"
+name = "wlite-formats-rtf"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "encoding_rs",
  "serde_json",
- "wordlite-docmodel",
- "wordlite-formats-core",
+ "wlite-docmodel",
+ "wlite-formats-core",
 ]
 
 [[package]]
-name = "wordlite-formats-txt"
+name = "wlite-formats-txt"
 version = "0.1.0"
 dependencies = [
  "serde_json",
- "wordlite-docmodel",
- "wordlite-formats-core",
+ "wlite-docmodel",
+ "wlite-formats-core",
 ]
 
 [[package]]

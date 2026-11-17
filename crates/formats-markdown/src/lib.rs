@@ -1,8 +1,8 @@
 use comrak::nodes::{AstNode, ListType, NodeList, NodeValue};
 use comrak::{parse_document, Arena, Options};
 use serde_json::json;
-use wordlite_docmodel::{PmDoc, PmMark, PmNode};
-use wordlite_formats_core::{
+use wlite_docmodel::{PmDoc, PmMark, PmNode};
+use wlite_formats_core::{
     image_alt, node_text, DocumentCodec, FormatError, ImportedDocument, WarningSink,
     WrittenDocument,
 };
@@ -821,7 +821,7 @@ fn longest_backtick_run(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wordlite_formats_core::DocumentFormat;
+    use wlite_formats_core::DocumentFormat;
 
     fn read(source: &str) -> ImportedDocument {
         codec().read(source).expect("чтение Markdown")

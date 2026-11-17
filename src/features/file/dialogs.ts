@@ -6,7 +6,7 @@ import { extensionFor, labelFor, saveDefaultPath, withFormatExtension } from "./
 
 function ensureTauri(): void {
   if (!isTauri()) {
-    throw new Error("Файловые операции доступны только в приложении Wordlite");
+    throw new Error("Файловые операции доступны только в приложении WLite");
   }
 }
 
@@ -84,7 +84,7 @@ export function confirmDiscardChanges(
     : "В документе есть несохранённые изменения. Продолжить без сохранения?";
 
   return ask(message, {
-    title: "Wordlite",
+    title: "WLite",
     kind: "warning",
     okLabel: "Продолжить",
     cancelLabel: "Отмена",
@@ -98,7 +98,7 @@ export function confirmDiscardAll(count: number): Promise<boolean> {
       : "В документе есть несохранённые изменения. Закрыть без сохранения?";
 
   return ask(message, {
-    title: "Wordlite",
+    title: "WLite",
     kind: "warning",
     okLabel: "Закрыть",
     cancelLabel: "Отмена",
@@ -112,7 +112,7 @@ export function confirmQuit(count = 1): Promise<boolean> {
       : "В документе есть несохранённые изменения. Выйти без сохранения?";
 
   return ask(message, {
-    title: "Wordlite",
+    title: "WLite",
     kind: "warning",
     okLabel: "Выйти",
     cancelLabel: "Отмена",
@@ -132,7 +132,7 @@ export function confirmTxtLoss(): Promise<boolean> {
   return ask(
     "Формат TXT сохраняет только текст. Форматирование, списки и таблицы будут потеряны. Сохранить?",
     {
-      title: "Wordlite",
+      title: "WLite",
       kind: "warning",
       okLabel: "Сохранить",
       cancelLabel: "Отмена",
