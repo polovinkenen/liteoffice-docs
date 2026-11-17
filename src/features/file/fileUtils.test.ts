@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   basename,
   documentTitle,
-  ensureExtension,
   formatFromPath,
   hasFormatting,
 } from "./fileUtils";
@@ -28,14 +27,6 @@ describe("basename", () => {
   it("извлекает имя файла из путей разных платформ", () => {
     expect(basename("/Users/me/Документ.md")).toBe("Документ.md");
     expect(basename("C:\\Users\\me\\Документ.txt")).toBe("Документ.txt");
-  });
-});
-
-describe("ensureExtension", () => {
-  it("добавляет расширение только когда его нет", () => {
-    expect(ensureExtension("/tmp/Заметка", "md")).toBe("/tmp/Заметка.md");
-    expect(ensureExtension("/tmp/Заметка.txt", "md")).toBe("/tmp/Заметка.txt");
-    expect(ensureExtension("/tmp/Заметка.doc", "md")).toBe("/tmp/Заметка.doc");
   });
 });
 

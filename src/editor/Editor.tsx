@@ -46,7 +46,7 @@ export default function Editor({ workspace }: EditorProps) {
           activeId={workspace.activeId}
           onActivate={workspace.activateTab}
           onClose={(id) => void workspace.closeTab(id)}
-          onNew={workspace.newTab}
+          onNew={workspace.newStartTab}
         />
         {!showStart ? (
           <>

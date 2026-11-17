@@ -54,6 +54,7 @@ export const ru = {
   documents: {
     label: "Документы",
     new: "Новый документ",
+    newTab: "Новая вкладка",
     close: "Закрыть документ",
     unsaved: "Не сохранено",
     dropFiles: "Отпустите файлы, чтобы открыть",
@@ -89,6 +90,19 @@ export const ru = {
     error: "Ошибка",
     warnings: "Замечания",
     dismiss: "Скрыть",
+    saveFormatTitle: "Сохранить как",
+    saveFormatLabel: "Формат файла",
+    saveFormatTxtHint:
+      "TXT сохраняет только текст: форматирование, списки и таблицы будут потеряны.",
+    save: "Сохранить",
+    cancel: "Отмена",
+    formats: {
+      md: "Markdown (GFM)",
+      html: "HTML",
+      rtf: "RTF",
+      docx: "DOCX",
+      txt: "Текст",
+    },
   },
   find: {
     label: "Поиск и замена",

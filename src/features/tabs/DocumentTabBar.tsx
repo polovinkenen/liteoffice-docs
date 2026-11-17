@@ -65,8 +65,8 @@ export default function DocumentTabBar({
       <button
         type="button"
         className="document-tabs__add"
-        title={ru.documents.new}
-        aria-label={ru.documents.new}
+        title={ru.documents.newTab}
+        aria-label={ru.documents.newTab}
         onClick={onNew}
       >
         +

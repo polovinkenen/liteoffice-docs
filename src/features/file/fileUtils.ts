@@ -46,21 +46,6 @@ export function basename(path: string): string {
   return parts.at(-1) ?? "";
 }
 
-export function ensureExtension(
-  path: string,
-  fallback: DocumentFormat,
-): string {
-  if (formatFromPath(path)) {
-    return path;
-  }
-
-  if (/\.[^.\\/]+$/.test(path)) {
-    return path;
-  }
-
-  return `${path}.${fallback}`;
-}
-
 export function documentTitle(fileName: string, dirty: boolean): string {
   const name = fileName.trim() || "Без названия";
   return `Wordlite — ${name}${dirty ? " *" : ""}`;

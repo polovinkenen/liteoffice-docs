@@ -1,7 +1,8 @@
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { ru } from "../../i18n/ru";
 import { isTauri } from "../../lib/tauri";
-import { ensureExtension, type DocumentFormat } from "./fileUtils";
+import type { DocumentFormat } from "./fileUtils";
+import { extensionFor, labelFor, saveDefaultPath, withFormatExtension } from "./formats";
 
 function ensureTauri(): void {
   if (!isTauri()) {
@@ -15,37 +16,6 @@ const OPEN_FILTERS = [
     extensions: ["md", "markdown", "txt", "html", "htm", "rtf", "docx"],
   },
 ];
-
-const SAVE_FILTERS = [
-  {
-    name: "Markdown",
-    extensions: ["md"],
-  },
-  {
-    name: "HTML",
-    extensions: ["html"],
-  },
-  {
-    name: "RTF",
-    extensions: ["rtf"],
-  },
-  {
-    name: "DOCX",
-    extensions: ["docx"],
-  },
-  {
-    name: "Текст",
-    extensions: ["txt"],
-  },
-];
-
-const DEFAULT_NAMES: Record<DocumentFormat, string> = {
-  md: "Без названия.md",
-  html: "Без названия.html",
-  rtf: "Без названия.rtf",
-  docx: "Без названия.docx",
-  txt: "Без названия.txt",
-};
 
 const IMAGE_FILTERS = [
   {
@@ -84,23 +54,26 @@ export async function pickImagePath(): Promise<string | null> {
 
 export async function pickSavePath(
   currentPath: string | null,
-  format: DocumentFormat | null,
+  currentFormat: DocumentFormat | null,
+  chosenFormat: DocumentFormat,
 ): Promise<string | null> {
   ensureTauri();
 
-  const defaultPath =
-    currentPath ?? DEFAULT_NAMES[format ?? "md"];
-
   const selected = await save({
-    defaultPath,
-    filters: SAVE_FILTERS,
+    defaultPath: saveDefaultPath(currentPath, currentFormat, chosenFormat),
+    filters: [
+      {
+        name: labelFor(chosenFormat),
+        extensions: [extensionFor(chosenFormat)],
+      },
+    ],
   });
 
   if (typeof selected !== "string") {
     return null;
   }
 
-  return ensureExtension(selected, format ?? "md");
+  return withFormatExtension(selected, chosenFormat);
 }
 
 export function confirmDiscardChanges(

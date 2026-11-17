@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Editor from "./editor/Editor";
 import DropOverlay from "./features/file/DropOverlay";
 import FileBanner from "./features/file/FileBanner";
+import SaveFormatDialog from "./features/file/SaveFormatDialog";
 import { useDropFiles } from "./features/file/useDropFiles";
 import SettingsMenu from "./features/settings/SettingsMenu";
 import { useSettings } from "./features/settings/useSettings";
@@ -75,6 +76,13 @@ export default function App() {
         />
         <Editor workspace={workspace} />
       </main>
+      {workspace.saveFormatPrompt ? (
+        <SaveFormatDialog
+          current={workspace.saveFormatPrompt.current}
+          onConfirm={workspace.confirmSaveFormat}
+          onCancel={workspace.cancelSaveFormat}
+        />
+      ) : null}
       {dragging ? <DropOverlay /> : null}
     </div>
   );

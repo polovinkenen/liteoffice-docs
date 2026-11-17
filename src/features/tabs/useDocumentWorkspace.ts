@@ -32,8 +32,8 @@ import {
 import {
   basename,
   documentTitle,
-  formatFromPath,
   hasFormatting,
+  type DocumentFormat,
 } from "../file/fileUtils";
 import { MENU_EVENT } from "../file/menuEvents";
 import {
@@ -60,12 +60,16 @@ export interface DocumentWorkspace {
   activeEditor: Editor | null;
   recent: RecentEntry[];
   newTab: () => void;
+  newStartTab: () => void;
   activateTab: (id: string) => void;
   closeTab: (id?: string) => Promise<void>;
   open: () => Promise<void>;
   openPaths: (paths: string[]) => Promise<void>;
   save: () => Promise<void>;
   saveAs: () => Promise<void>;
+  saveFormatPrompt: { current: DocumentFormat | null } | null;
+  confirmSaveFormat: (format: DocumentFormat) => void;
+  cancelSaveFormat: () => void;
   reportError: (cause: unknown) => void;
   dismissMessages: () => void;
   dismissStartScreen: (id?: string) => void;
@@ -120,10 +124,16 @@ export function useDocumentWorkspace(
     () => new Map(),
   );
   const [recent, setRecent] = useState<RecentEntry[]>([]);
+  const [saveFormatPrompt, setSaveFormatPrompt] = useState<{
+    current: DocumentFormat | null;
+  } | null>(null);
 
   const tabsRef = useRef(tabs);
   const activeIdRef = useRef(activeId);
   const editorsRef = useRef(editors);
+  const saveFormatResolver = useRef<
+    ((format: DocumentFormat | null) => void) | null
+  >(null);
 
   const commitTabs = useCallback((next: DocumentTab[]) => {
     tabsRef.current = next;
@@ -133,6 +143,40 @@ export function useDocumentWorkspace(
   const commitActive = useCallback((id: string) => {
     activeIdRef.current = id;
     setActiveId(id);
+  }, []);
+
+  const promptSaveFormat = useCallback(
+    (current: DocumentFormat | null) =>
+      new Promise<DocumentFormat | null>((resolve) => {
+        saveFormatResolver.current?.(null);
+        saveFormatResolver.current = resolve;
+        setSaveFormatPrompt({ current });
+      }),
+    [],
+  );
+
+  const settleSaveFormat = useCallback((format: DocumentFormat | null) => {
+    const resolve = saveFormatResolver.current;
+    saveFormatResolver.current = null;
+    setSaveFormatPrompt(null);
+    resolve?.(format);
+  }, []);
+
+  const confirmSaveFormat = useCallback(
+    (format: DocumentFormat) => settleSaveFormat(format),
+    [settleSaveFormat],
+  );
+
+  const cancelSaveFormat = useCallback(
+    () => settleSaveFormat(null),
+    [settleSaveFormat],
+  );
+
+  useEffect(() => {
+    return () => {
+      saveFormatResolver.current?.(null);
+      saveFormatResolver.current = null;
+    };
   }, []);
 
   const patchTab = useCallback(
@@ -380,6 +424,21 @@ export function useDocumentWorkspace(
     }, 0);
   }, [commitActive, commitTabs, patchTab]);
 
+  const newStartTab = useCallback(() => {
+    const existingStart = tabsRef.current.find(
+      (tab) => tab.showStart && tab.path === null,
+    );
+
+    if (existingStart) {
+      commitActive(existingStart.id);
+      return;
+    }
+
+    const tab = createBlankTab(nextUntitledNumber(tabsRef.current), true);
+    commitTabs([...tabsRef.current, tab]);
+    commitActive(tab.id);
+  }, [commitActive, commitTabs]);
+
   const activateTab = useCallback(
     (id: string) => {
       if (tabsRef.current.some((tab) => tab.id === id)) {
@@ -396,10 +455,12 @@ export function useDocumentWorkspace(
         (tab) => tab.id === activeIdRef.current,
       );
       const replaceBlank =
-        current.length === 1 &&
         currentActive?.path === null &&
-        !currentActive.dirty;
-      const nextTabs = replaceBlank ? [] : [...current];
+        !currentActive.dirty &&
+        (current.length === 1 || currentActive.showStart);
+      const nextTabs = replaceBlank
+        ? current.filter((tab) => tab.id !== currentActive.id)
+        : [...current];
       const openedTabs: DocumentTab[] = [];
       const errors: string[] = [];
 
@@ -431,7 +492,8 @@ export function useDocumentWorkspace(
       if (errors.length > 0) {
         const target =
           openedTabs[openedTabs.length - 1] ??
-          nextTabs.find((tab) => tab.id === activeIdRef.current);
+          nextTabs.find((tab) => tab.id === activeIdRef.current) ??
+          currentActive;
 
         if (target) {
           patchTab(target.id, { error: errors.join("; ") });
@@ -467,9 +529,17 @@ export function useDocumentWorkspace(
 
       try {
         let target = tab.path;
+        let format = tab.format;
 
         if (forceDialog || !target) {
-          target = await pickSavePath(tab.path, tab.format);
+          const chosen = await promptSaveFormat(tab.format);
+
+          if (!chosen) {
+            return;
+          }
+
+          format = chosen;
+          target = await pickSavePath(tab.path, tab.format, chosen);
         }
 
         if (!target) {
@@ -477,7 +547,7 @@ export function useDocumentWorkspace(
         }
 
         if (
-          formatFromPath(target) === "txt" &&
+          format === "txt" &&
           hasFormatting(editor.getJSON()) &&
           !(await confirmTxtLoss())
         ) {
@@ -501,7 +571,7 @@ export function useDocumentWorkspace(
         patchTab(id, { busy: false });
       }
     },
-    [discardStoredAutosave, patchTab, recordRecent],
+    [discardStoredAutosave, patchTab, promptSaveFormat, recordRecent],
   );
 
   const save = useCallback(() => saveActive(false), [saveActive]);
@@ -864,12 +934,16 @@ export function useDocumentWorkspace(
     activeEditor,
     recent,
     newTab,
+    newStartTab,
     activateTab,
     closeTab,
     open,
     openPaths: openFiles,
     save,
     saveAs,
+    saveFormatPrompt,
+    confirmSaveFormat,
+    cancelSaveFormat,
     reportError,
     dismissMessages,
     dismissStartScreen,
