@@ -1,0 +1,77 @@
+name: Bundles
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  bundle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: wordlite-macos-arm64
+            command: npx tauri build --target aarch64-apple-darwin --bundles dmg
+            path: |
+              target/aarch64-apple-darwin/release/bundle/dmg/**
+              src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/**
+          - os: windows-latest
+            artifact: wordlite-windows-x64
+            command: npx tauri build --bundles nsis,msi
+            path: |
+              target/release/bundle/nsis/**
+              target/release/bundle/msi/**
+              src-tauri/target/release/bundle/nsis/**
+              src-tauri/target/release/bundle/msi/**
+          - os: ubuntu-22.04
+            artifact: wordlite-linux-x64
+            command: npx tauri build --bundles deb,appimage
+            path: |
+              target/release/bundle/deb/**
+              target/release/bundle/appimage/**
+              src-tauri/target/release/bundle/deb/**
+              src-tauri/target/release/bundle/appimage/**
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Системные зависимости Linux
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libfuse2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Цель macOS arm64
+        if: matrix.os == 'macos-latest'
+        run: rustup target add aarch64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: npm ci
+
+      - name: Сборка установщиков
+        run: ${{ matrix.command }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          retention-days: 30

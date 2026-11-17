@@ -1,3 +1,5 @@
+[![CI](https://github.com/polovinkenen/wordlite/actions/workflows/ci.yml/badge.svg)](https://github.com/polovinkenen/wordlite/actions/workflows/ci.yml)
+
 # Wordlite
 
 Кроссплатформенный (macOS, Linux, Windows) редактор документов — аналог Word для
@@ -200,6 +202,42 @@ npm run dev
 | `make check` | eslint, tsc, vitest, rustfmt, clippy |
 | `cargo test --workspace` | Rust-тесты |
 | `npx tauri build --no-bundle` | сборка release-бинарника без установщика |
+| `npx tauri build --bundles dmg` | локальная сборка macOS-установщика |
+
+## Установщики
+
+CI собирает установщики на трёх ОС:
+- macOS arm64 — `.dmg`;
+- Windows x64 — `.exe` (NSIS) и `.msi`;
+- Linux x64 — `.deb` и `.AppImage`.
+
+Workflows:
+- `CI` — проверки, а на push в `master`/`main` и по ручному запуску ещё и бандлы;
+- `Bundles` — общая сборка установщиков для CI и релизов;
+- `Release` — по тегу `v*` собирает установщики и прикрепляет их к GitHub Release.
+
+Скачать сборку:
+- из GitHub Releases — готовые файлы после релиза;
+- из Actions → нужный run → Artifacts (`wordlite-macos-arm64`,
+  `wordlite-windows-x64`, `wordlite-linux-x64`).
+
+Локальная сборка macOS:
+```bash
+npx tauri build --target aarch64-apple-darwin --bundles dmg
+# target/aarch64-apple-darwin/release/bundle/dmg/Wordlite_0.1.0_aarch64.dmg
+```
+
+Релиз:
+```bash
+git tag -a v0.1.0 -m "Wordlite 0.1.0"
+git push origin v0.1.0
+```
+
+Подписи пока не настроены, поэтому установщики неподписанные:
+- macOS: правый клик по `Wordlite.app` → «Открыть» либо
+  `xattr -dr com.apple.quarantine /Applications/Wordlite.app`;
+- Windows: SmartScreen → «Подробнее» → «Выполнить всё равно»;
+- Linux: `sudo dpkg -i wordlite_*.deb` или `chmod +x Wordlite_*.AppImage`.
 
 ## Структура
 

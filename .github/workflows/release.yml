@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Проверить версию
+        run: |
+          package_version=$(node -p "require('./package.json').version")
+          tauri_version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+
+          if [ "v$package_version" != "$GITHUB_REF_NAME" ]; then
+            echo "Тег $GITHUB_REF_NAME не совпадает с версией package.json: v$package_version" >&2
+            exit 1
+          fi
+
+          if [ "$package_version" != "$tauri_version" ]; then
+            echo "Версии package.json ($package_version) и tauri.conf.json ($tauri_version) не совпадают" >&2
+            exit 1
+          fi
+
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  bundle:
+    needs: [version, checks]
+    uses: ./.github/workflows/bundle.yml
+
+  release:
+    needs: bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Опубликовать установщики
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          draft: false
+          prerelease: false
