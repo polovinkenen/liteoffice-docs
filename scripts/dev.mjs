@@ -1,8 +1,20 @@
 import { spawn } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = ["dev"];
+
 if (process.platform === "darwin") {
-  args.push("--config", "src-tauri/tauri.macos.dev.conf.json");
+  const runnerConfig = {
+    build: {
+      runner: {
+        cmd: "./scripts/dev-runner.sh",
+        cwd: root,
+      },
+    },
+  };
+  args.push("--config", JSON.stringify(runnerConfig));
 }
 
 const child = spawn("tauri", args, {
