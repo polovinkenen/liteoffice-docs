@@ -166,6 +166,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "docmodel"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "docx-rs"
 version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -291,6 +300,78 @@ dependencies = [
 ]
 
 [[package]]
+name = "formats"
+version = "0.1.0"
+dependencies = [
+ "formats-core",
+ "formats-docx",
+ "formats-html",
+ "formats-markdown",
+ "formats-rtf",
+ "formats-txt",
+]
+
+[[package]]
+name = "formats-core"
+version = "0.1.0"
+dependencies = [
+ "docmodel",
+ "thiserror",
+]
+
+[[package]]
+name = "formats-docx"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "docmodel",
+ "docx-rs",
+ "formats-core",
+ "serde_json",
+ "zip",
+]
+
+[[package]]
+name = "formats-html"
+version = "0.1.0"
+dependencies = [
+ "docmodel",
+ "ego-tree",
+ "formats-core",
+ "scraper",
+ "serde_json",
+]
+
+[[package]]
+name = "formats-markdown"
+version = "0.1.0"
+dependencies = [
+ "comrak",
+ "docmodel",
+ "formats-core",
+ "serde_json",
+]
+
+[[package]]
+name = "formats-rtf"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "docmodel",
+ "encoding_rs",
+ "formats-core",
+ "serde_json",
+]
+
+[[package]]
+name = "formats-txt"
+version = "0.1.0"
+dependencies = [
+ "docmodel",
+ "formats-core",
+]
+
+[[package]]
 name = "getopts"
 version = "0.2.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -406,6 +487,14 @@ checksum = "a9fd2f41a1cba099f79a0b6b6c35656cf7c03351a7bae8ff0f28f25270f929d2"
 dependencies = [
  "arbitrary",
  "cc",
+]
+
+[[package]]
+name = "liteoffice-docs-fuzz"
+version = "0.0.0"
+dependencies = [
+ "formats",
+ "libfuzzer-sys",
 ]
 
 [[package]]
@@ -954,95 +1043,6 @@ name = "windows-link"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
-
-[[package]]
-name = "wlite-docmodel"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "wlite-formats"
-version = "0.1.0"
-dependencies = [
- "wlite-formats-core",
- "wlite-formats-docx",
- "wlite-formats-html",
- "wlite-formats-markdown",
- "wlite-formats-rtf",
- "wlite-formats-txt",
-]
-
-[[package]]
-name = "wlite-formats-core"
-version = "0.1.0"
-dependencies = [
- "thiserror",
- "wlite-docmodel",
-]
-
-[[package]]
-name = "wlite-formats-docx"
-version = "0.1.0"
-dependencies = [
- "base64",
- "docx-rs",
- "serde_json",
- "wlite-docmodel",
- "wlite-formats-core",
- "zip",
-]
-
-[[package]]
-name = "wlite-formats-html"
-version = "0.1.0"
-dependencies = [
- "ego-tree",
- "scraper",
- "serde_json",
- "wlite-docmodel",
- "wlite-formats-core",
-]
-
-[[package]]
-name = "wlite-formats-markdown"
-version = "0.1.0"
-dependencies = [
- "comrak",
- "serde_json",
- "wlite-docmodel",
- "wlite-formats-core",
-]
-
-[[package]]
-name = "wlite-formats-rtf"
-version = "0.1.0"
-dependencies = [
- "base64",
- "encoding_rs",
- "serde_json",
- "wlite-docmodel",
- "wlite-formats-core",
-]
-
-[[package]]
-name = "wlite-formats-txt"
-version = "0.1.0"
-dependencies = [
- "wlite-docmodel",
- "wlite-formats-core",
-]
-
-[[package]]
-name = "wlite-fuzz"
-version = "0.0.0"
-dependencies = [
- "libfuzzer-sys",
- "wlite-formats",
-]
 
 [[package]]
 name = "zerocopy"

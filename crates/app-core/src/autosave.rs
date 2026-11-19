@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use docmodel::PmDoc;
 use serde::{Deserialize, Serialize};
-use wlite_docmodel::PmDoc;
 
 use crate::files::{read_text, write_text_atomic};
 use crate::{AppError, AppResult};
@@ -226,7 +226,7 @@ fn now_millis() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wlite_docmodel::PmNode;
+    use docmodel::PmNode;
 
     fn document(text: &str) -> PmDoc {
         PmDoc {

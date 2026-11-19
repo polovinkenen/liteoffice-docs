@@ -1,13 +1,13 @@
 [package]
-name = "wlite"
+name = "liteoffice-docs"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Кроссплатформенный редактор документов WLite"
+description = "Кроссплатформенный редактор документов LiteOffice Docs"
 
 [lib]
-name = "wlite_lib"
+name = "liteoffice_docs_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
@@ -24,10 +24,10 @@ serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-wlite-app-core = { version = "0.1.0", path = "../crates/app-core" }
-wlite-docmodel = { version = "0.1.0", path = "../crates/docmodel" }
-wlite-formats = { version = "0.1.0", path = "../crates/formats" }
-wlite-export-pdf = { version = "0.1.0", path = "../crates/export-pdf" }
+app-core = { version = "0.1.0", path = "../crates/app-core" }
+docmodel = { version = "0.1.0", path = "../crates/docmodel" }
+formats = { version = "0.1.0", path = "../crates/formats" }
+export-pdf = { version = "0.1.0", path = "../crates/export-pdf" }
 
 [dev-dependencies]
 tempfile.workspace = true

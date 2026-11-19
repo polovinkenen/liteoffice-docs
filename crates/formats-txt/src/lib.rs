@@ -1,5 +1,5 @@
-use wlite_docmodel::{PmDoc, PmNode};
-use wlite_formats_core::{
+use docmodel::{PmDoc, PmNode};
+use formats_core::{
     has_formatting, image_alt, node_text, DocumentCodec, FormatError, ImportedDocument,
     WarningSink, WrittenDocument,
 };
@@ -184,8 +184,8 @@ fn table_text(node: &PmNode) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use formats_core::DocumentFormat;
     use serde_json::json;
-    use wlite_formats_core::DocumentFormat;
 
     fn read(source: &str) -> PmDoc {
         codec().read(source).expect("чтение TXT").document

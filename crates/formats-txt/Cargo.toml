@@ -1,14 +1,14 @@
 [package]
-name = "wlite-formats-txt"
+name = "formats-txt"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Импорт и экспорт plain text для WLite"
+description = "Импорт и экспорт plain text для LiteOffice Docs"
 
 [dependencies]
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
-wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
+formats-core = { version = "0.1.0", path = "../formats-core" }
 
 [dev-dependencies]
 serde_json.workspace = true

@@ -31,7 +31,7 @@ export const MARGIN_PRESETS: MarginPreset[] = [
   { id: "custom", margin: null },
 ];
 
-export const PDF_OPTIONS_CACHE_KEY = "wlite.pdf.v1";
+export const PDF_OPTIONS_CACHE_KEY = "liteoffice.docs.pdf.v1";
 
 export const DEFAULT_PDF_OPTIONS: PdfOptions = {
   paper: "a4",

@@ -1,14 +1,14 @@
 [package]
-name = "wlite-formats-core"
+name = "formats-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Общие типы конвертеров документов WLite"
+description = "Общие типы конвертеров документов LiteOffice Docs"
 
 [dependencies]
 thiserror.workspace = true
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
 
 [dev-dependencies]
 serde_json.workspace = true

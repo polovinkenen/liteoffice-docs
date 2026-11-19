@@ -1,12 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use app_core::files::write_bytes_atomic;
+use app_core::{AppError, AppResult};
+use docmodel::PmDoc;
+use export_pdf::{render, PdfOptions};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
-use wlite_app_core::files::write_bytes_atomic;
-use wlite_app_core::{AppError, AppResult};
-use wlite_docmodel::PmDoc;
-use wlite_export_pdf::{render, PdfOptions};
 
 use super::document::asset_store;
 use super::run_blocking;
@@ -66,7 +66,7 @@ fn validate_preview_path(path: &Path, directory: &Path) -> AppResult<PathBuf> {
 
     if !canonical_path.starts_with(&canonical_dir) || !canonical_path.is_file() {
         return Err(AppError::InvalidArgument(
-            "предпросмотр PDF доступен только для файлов WLite".to_owned(),
+            "предпросмотр PDF доступен только для файлов LiteOffice Docs".to_owned(),
         ));
     }
 

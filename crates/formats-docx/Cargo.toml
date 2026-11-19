@@ -1,18 +1,18 @@
 [package]
-name = "wlite-formats-docx"
+name = "formats-docx"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Импорт и экспорт DOCX для WLite"
+description = "Импорт и экспорт DOCX для LiteOffice Docs"
 
 [dependencies]
 base64.workspace = true
 docx-rs = "0.4.22"
 serde_json.workspace = true
 zip = { version = "8.6", default-features = false, features = ["deflate"] }
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
-wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
+formats-core = { version = "0.1.0", path = "../formats-core" }
 
 [dev-dependencies]
 tempfile.workspace = true

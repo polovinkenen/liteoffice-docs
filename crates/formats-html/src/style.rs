@@ -1,7 +1,7 @@
+use docmodel::PmMark;
 use serde_json::{json, Map, Value};
-use wlite_docmodel::PmMark;
 
-pub use wlite_formats_core::is_safe_link;
+pub use formats_core::is_safe_link;
 
 pub const DEFAULT_FONT_SIZE_UNITS: &[&str] = &["px", "pt", "em", "rem", "%"];
 

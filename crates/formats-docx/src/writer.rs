@@ -3,6 +3,7 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use docmodel::{PmDoc, PmNode};
 use docx_rs::{
     AbstractNumbering, AlignmentType, BorderType, BreakType, Docx, IndentLevel, Level, LevelJc,
     LevelText, LineSpacing, LineSpacingType, NumberFormat, Numbering, NumberingId, Numberings,
@@ -10,8 +11,7 @@ use docx_rs::{
     Shading, SpecialIndentType, Start, Style, StyleType, Styles, Table, TableCell, TableRow,
     VMergeType,
 };
-use wlite_docmodel::{PmDoc, PmNode};
-use wlite_formats_core::{is_safe_link, FormatError, WarningSink, WrittenFile};
+use formats_core::{is_safe_link, FormatError, WarningSink, WrittenFile};
 
 use crate::units::{
     docx_font_name, font_size_half_points, hex_color, line_height_twips, parse_color,
@@ -164,7 +164,7 @@ impl WriteContext {
                 self.warnings
                     .warn(format!("Узел «{}» не поддерживается DOCX.", node.node_type));
                 let mut paragraph = Paragraph::new();
-                let text = wlite_formats_core::node_text(node);
+                let text = formats_core::node_text(node);
 
                 if !text.is_empty() {
                     paragraph = paragraph.add_run(Run::new().add_text(text));
@@ -636,7 +636,7 @@ impl WriteContext {
                 _ => {
                     self.warnings
                         .warn("Вложенные таблицы и списки внутри ячеек DOCX упрощаются до текста.");
-                    let text = wlite_formats_core::node_text(child);
+                    let text = formats_core::node_text(child);
                     let mut paragraph = Paragraph::new();
 
                     if !text.is_empty() {
@@ -652,7 +652,7 @@ impl WriteContext {
     }
 
     fn build_code_block(&mut self, node: &PmNode) -> Paragraph {
-        let text = wlite_formats_core::node_text(node);
+        let text = formats_core::node_text(node);
         let mut paragraph = Paragraph::new();
         let lines: Vec<&str> = text.split('\n').collect();
 

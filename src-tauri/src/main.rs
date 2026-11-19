@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    wlite_lib::run();
+    liteoffice_docs_lib::run();
 }

@@ -1,6 +1,6 @@
 # Форматы
 
-Документ описывает, что WLite импортирует и экспортирует, какие узлы и атрибуты
+Документ описывает, что LiteOffice Docs импортирует и экспортирует, какие узлы и атрибуты
 поддерживаются, где происходят потери и какие лимиты применяются. Слои и потоки
 описаны в [architecture.md](architecture.md), известные ограничения — в
 [limitations.md](limitations.md).
@@ -179,7 +179,7 @@ DOCX (а также для изображений) и при экспорте с
 round-trip.
 
 ```bash
-for crate in wlite-formats-html wlite-formats-rtf wlite-formats-docx; do
+for crate in formats-html formats-rtf formats-docx; do
   cargo test -p "$crate" --test golden
   UPDATE_GOLDEN=1 cargo test -p "$crate" --test golden
 done
@@ -197,9 +197,9 @@ done
 Бенчмарк импорта (~300 страниц) и `validate`:
 
 ```bash
-cargo test -p wlite-formats --test perf -- --ignored --nocapture
-WLITE_PERF_MAX_MS=3000 WLITE_PERF_MAX_MB=800 \
-  cargo test -p wlite-formats --test perf -- --ignored --nocapture
+cargo test -p formats --test perf -- --ignored --nocapture
+LITEOFFICE_DOCS_PERF_MAX_MS=3000 LITEOFFICE_DOCS_PERF_MAX_MB=800 \
+  cargo test -p formats --test perf -- --ignored --nocapture
 ```
 
 Пороги: 2000 мс медианы и 500 МБ пикового прироста памяти; вебвью, ввод, IPC, экспорт и PDF не измеряются.

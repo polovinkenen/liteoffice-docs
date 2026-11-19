@@ -52,7 +52,7 @@ npx tauri build --target aarch64-apple-darwin --bundles dmg
 Артефакты появляются в `target/release/bundle/`:
 
 - macOS: `dmg/` (при сборке под arm64 —
-  `target/aarch64-apple-darwin/release/bundle/dmg/WLite_0.1.0_aarch64.dmg`);
+  `target/aarch64-apple-darwin/release/bundle/dmg/LiteOffice Docs_0.1.0_aarch64.dmg`);
 - Windows: `msi/` и `nsis/`;
 - Linux: `deb/` и `appimage/`.
 
@@ -74,7 +74,7 @@ npx tauri build --target aarch64-apple-darwin --bundles dmg
     `cargo clippy --workspace --all-targets -- -D warnings` без Linux-пакетов.
 - `bundle.yml` — матрица macOS arm64, Windows x64, Ubuntu 22.04; собирает
   `.dmg`, `.msi`+NSIS, `.deb`+`.AppImage` и загружает артефакты
-  `wlite-macos-arm64`, `wlite-windows-x64`, `wlite-linux-x64` на 30 дней.
+  `liteoffice-docs-macos-arm64`, `liteoffice-docs-windows-x64`, `liteoffice-docs-linux-x64` на 30 дней.
 - `release.yml` — по тегу `v*` сверяет версии `package.json` и
   `src-tauri/tauri.conf.json`, запускает checks и bundle, затем прикрепляет
   установщики к GitHub Release.
@@ -110,9 +110,9 @@ cargo +nightly fuzz run docx_import -- -max_total_time=60 -rss_limit_mb=2048
 с параллельным тестом. Обычный `cargo test --workspace` его не запускает.
 
 ```bash
-cargo test -p wlite-formats --test perf -- --ignored --nocapture
-WLITE_PERF_MAX_MS=3000 WLITE_PERF_MAX_MB=800 \
-  cargo test -p wlite-formats --test perf -- --ignored --nocapture
+cargo test -p formats --test perf -- --ignored --nocapture
+LITEOFFICE_DOCS_PERF_MAX_MS=3000 LITEOFFICE_DOCS_PERF_MAX_MB=800 \
+  cargo test -p formats --test perf -- --ignored --nocapture
 ```
 
 Пороги по умолчанию: 2000 мс медианы и 500 МБ пикового прироста памяти на каждый

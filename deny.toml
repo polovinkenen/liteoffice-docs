@@ -12,12 +12,12 @@ yanked = "deny"
 ignore = [
     { id = "RUSTSEC-2026-0194", reason = "quick-xml через typst (citationberg 0.6.1 фиксирует quick-xml 0.38.x, патч в >=0.41); в export-pdf bibliography/cite не используются, уязвимый путь не исполняется" },
     { id = "RUSTSEC-2026-0195", reason = "quick-xml через typst (citationberg 0.6.1 фиксирует quick-xml 0.38.x, патч в >=0.41); в export-pdf bibliography/cite не используются, уязвимый путь не исполняется" },
-    { id = "RUSTSEC-2026-0367", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; WLite не вызывает ZipArchive::extract" },
-    { id = "RUSTSEC-2026-0368", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; WLite не вызывает ZipArchive::extract" },
-    { id = "RUSTSEC-2026-0369", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; WLite не вызывает ZipArchive::extract" },
-    { id = "RUSTSEC-2026-0429", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; WLite не вызывает ZipArchive::extract" },
+    { id = "RUSTSEC-2026-0367", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; LiteOffice Docs не вызывает ZipArchive::extract" },
+    { id = "RUSTSEC-2026-0368", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; LiteOffice Docs не вызывает ZipArchive::extract" },
+    { id = "RUSTSEC-2026-0369", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; LiteOffice Docs не вызывает ZipArchive::extract" },
+    { id = "RUSTSEC-2026-0429", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; LiteOffice Docs не вызывает ZipArchive::extract" },
     { id = "RUSTSEC-2026-0545", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; фича zip aes-crypto не включена (default-features = false, features = [\"deflate\"]), код AES не компилируется, ZipArchive::extract и by_name_decrypt не вызываются" },
-    { id = "RUSTSEC-2026-0546", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; WLite не вызывает ZipArchive::extract" },
+    { id = "RUSTSEC-2026-0546", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; LiteOffice Docs не вызывает ZipArchive::extract" },
     { id = "RUSTSEC-2026-0547", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; feature legacy-zip не включён" },
     { id = "RUSTSEC-2026-0548", reason = "docx-rs 0.4.22 требует zip ^8.6 и не поддерживает zip 9; ZipStreamReader не используется" },
 ]

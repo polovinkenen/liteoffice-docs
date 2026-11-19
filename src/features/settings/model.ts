@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autosaveEnabled: true,
 };
 
-export const SETTINGS_CACHE_KEY = "wlite.settings.v1";
+export const SETTINGS_CACHE_KEY = "liteoffice.docs.settings.v1";
 
 const THEMES = new Set<ThemePreference>(["system", "light", "dark"]);
 

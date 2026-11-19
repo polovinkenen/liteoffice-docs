@@ -1,6 +1,6 @@
+use app_core::recent::{RecentEntry, RecentStore};
+use app_core::{AppError, AppResult};
 use tauri::{AppHandle, Manager};
-use wlite_app_core::recent::{RecentEntry, RecentStore};
-use wlite_app_core::{AppError, AppResult};
 
 use super::run_blocking;
 

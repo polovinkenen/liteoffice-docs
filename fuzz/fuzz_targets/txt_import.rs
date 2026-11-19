@@ -1,7 +1,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use wlite_formats::{codec_for, DocumentFormat};
+use formats::{codec_for, DocumentFormat};
 
 const MAX_INPUT_LEN: usize = 1024 * 1024;
 

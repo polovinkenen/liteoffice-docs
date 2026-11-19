@@ -1,5 +1,5 @@
-use wlite_docmodel::{PmDoc, PmMark, PmNode};
-use wlite_formats_core::{node_text, FormatError, WarningSink, WrittenDocument};
+use docmodel::{PmDoc, PmMark, PmNode};
+use formats_core::{node_text, FormatError, WarningSink, WrittenDocument};
 
 use crate::style::{is_safe_css_value, is_safe_link, paragraph_style, text_style};
 
@@ -18,7 +18,7 @@ pub fn write_document(document: &PmDoc) -> Result<WrittenDocument, FormatError> 
     let mut writer = Writer::new();
 
     writer.output.push_str(
-        "<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"utf-8\">\n<title>WLite</title>\n</head>\n<body>\n",
+        "<!DOCTYPE html>\n<html lang=\"ru\">\n<head>\n<meta charset=\"utf-8\">\n<title>LiteOffice Docs</title>\n</head>\n<body>\n",
     );
 
     for block in &document.content {

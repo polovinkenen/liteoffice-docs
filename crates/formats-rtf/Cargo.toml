@@ -1,14 +1,14 @@
 [package]
-name = "wlite-formats-rtf"
+name = "formats-rtf"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Импорт и экспорт RTF для WLite"
+description = "Импорт и экспорт RTF для LiteOffice Docs"
 
 [dependencies]
 base64.workspace = true
 encoding_rs = "0.8"
 serde_json.workspace = true
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
-wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
+formats-core = { version = "0.1.0", path = "../formats-core" }

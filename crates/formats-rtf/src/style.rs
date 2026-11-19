@@ -2,7 +2,7 @@ use encoding_rs::{
     Encoding, IBM866, UTF_8, WINDOWS_1250, WINDOWS_1251, WINDOWS_1252, WINDOWS_1253, WINDOWS_1254,
     WINDOWS_1255, WINDOWS_1256, WINDOWS_1257, WINDOWS_1258, WINDOWS_874,
 };
-use wlite_formats_core::FormatError;
+use formats_core::FormatError;
 
 pub const DEFAULT_FONT_SIZE_HALF_POINTS: u16 = 24;
 pub const DEFAULT_FONT_NAME: &str = "Times New Roman";

@@ -7,10 +7,10 @@ pub mod settings;
 
 use std::sync::atomic::Ordering;
 
+use app_core::{AppError, AppResult};
+use docmodel::PmDoc;
 use serde::Serialize;
 use tauri::State;
-use wlite_app_core::{AppError, AppResult};
-use wlite_docmodel::PmDoc;
 
 use crate::AppState;
 
@@ -52,7 +52,7 @@ pub fn ping() -> &'static str {
 #[tauri::command]
 pub fn app_info() -> AppInfo {
     AppInfo {
-        name: "WLite",
+        name: "LiteOffice Docs",
         version: env!("CARGO_PKG_VERSION"),
         platform: std::env::consts::OS,
         arch: std::env::consts::ARCH,

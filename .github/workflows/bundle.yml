@@ -14,13 +14,13 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            artifact: wlite-macos-arm64
+            artifact: liteoffice-docs-macos-arm64
             command: npx tauri build --target aarch64-apple-darwin --bundles dmg
             path: |
               target/aarch64-apple-darwin/release/bundle/dmg/**
               src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/**
           - os: windows-latest
-            artifact: wlite-windows-x64
+            artifact: liteoffice-docs-windows-x64
             command: npx tauri build --bundles nsis,msi
             path: |
               target/release/bundle/nsis/**
@@ -28,7 +28,7 @@ jobs:
               src-tauri/target/release/bundle/nsis/**
               src-tauri/target/release/bundle/msi/**
           - os: ubuntu-22.04
-            artifact: wlite-linux-x64
+            artifact: liteoffice-docs-linux-x64
             command: npx tauri build --bundles deb,appimage
             path: |
               target/release/bundle/deb/**

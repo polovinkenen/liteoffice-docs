@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use docmodel::{PmDoc, PmMark, PmNode};
+use formats_core::{is_safe_link, FormatError, ImportedDocument, WarningSink};
 use serde_json::{json, Map, Value};
-use wlite_docmodel::{PmDoc, PmMark, PmNode};
-use wlite_formats_core::{is_safe_link, FormatError, ImportedDocument, WarningSink};
 
 use crate::lexer::{tokenize, Token};
 use crate::style::{
@@ -1766,7 +1766,7 @@ fn atom(node_type: &str) -> PmNode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wlite_formats_core::node_text;
+    use formats_core::node_text;
 
     #[test]
     fn rejects_documents_over_node_limit() {

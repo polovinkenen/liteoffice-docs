@@ -1,9 +1,9 @@
+use docmodel::{PmDoc, PmMark, PmNode};
 use ego_tree::NodeRef;
+use formats_core::{FormatError, ImportedDocument, WarningSink};
 use scraper::node::Node;
 use scraper::Html;
 use serde_json::{json, Value};
-use wlite_docmodel::{PmDoc, PmMark, PmNode};
-use wlite_formats_core::{FormatError, ImportedDocument, WarningSink};
 
 use crate::style::{is_safe_link, merge_marks, paragraph_attrs, parse_declarations, text_marks};
 

@@ -108,7 +108,7 @@ describe("PdfOptions model", () => {
 
     expect(readCachedPdfOptions(store)).toEqual(options);
 
-    store.setItem("wlite.pdf.v1", "не json");
+    store.setItem("liteoffice.docs.pdf.v1", "не json");
     expect(readCachedPdfOptions(store)).toEqual(DEFAULT_PDF_OPTIONS);
   });
 });

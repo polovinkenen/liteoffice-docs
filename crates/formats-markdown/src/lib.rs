@@ -1,11 +1,11 @@
 use comrak::nodes::{AstNode, ListType, NodeList, NodeValue};
 use comrak::{parse_document, Arena, Options};
-use serde_json::json;
-use wlite_docmodel::{PmDoc, PmMark, PmNode};
-use wlite_formats_core::{
+use docmodel::{PmDoc, PmMark, PmNode};
+use formats_core::{
     image_alt, is_safe_link, node_text, DocumentCodec, FormatError, ImportedDocument, WarningSink,
     WrittenDocument,
 };
+use serde_json::json;
 
 // Память на разбор ограничена сверху размером входа: app-core::files не читает больше 50 MiB.
 const MAX_DEPTH: usize = 256;
@@ -990,7 +990,7 @@ fn longest_backtick_run(text: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wlite_formats_core::DocumentFormat;
+    use formats_core::DocumentFormat;
 
     fn read(source: &str) -> ImportedDocument {
         codec().read(source).expect("чтение Markdown")

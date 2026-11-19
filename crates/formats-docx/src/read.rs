@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use docmodel::{PmDoc, PmMark, PmNode, MAX_DEPTH, MAX_NODES};
 use docx_rs::{
     DocumentChild, Docx, DrawingData, HyperlinkData, Paragraph, ParagraphChild, ReadDocxOptions,
     RunChild, TableCellContent, TableChild, TableRowChild,
 };
+use formats_core::{is_safe_link, FormatError, ImportedDocument, WarningSink};
 use serde_json::{json, Map, Value};
-use wlite_docmodel::{PmDoc, PmMark, PmNode, MAX_DEPTH, MAX_NODES};
-use wlite_formats_core::{is_safe_link, FormatError, ImportedDocument, WarningSink};
 
 use crate::units::{
     canonical_font_family, font_size_points, format_color, line_height_from_twips, parse_color,

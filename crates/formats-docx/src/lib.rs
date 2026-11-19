@@ -4,10 +4,8 @@ mod writer;
 
 use std::io::{Cursor, Read};
 
-use wlite_docmodel::PmDoc;
-use wlite_formats_core::{
-    DocumentCodec, FormatError, ImportedDocument, WrittenDocument, WrittenFile,
-};
+use docmodel::PmDoc;
+use formats_core::{DocumentCodec, FormatError, ImportedDocument, WrittenDocument, WrittenFile};
 
 const MAX_ENTRIES: usize = 10_000;
 const MAX_UNCOMPRESSED_BYTES: u64 = 200 * 1024 * 1024;
@@ -155,7 +153,7 @@ fn validate_archive_with_limits(bytes: &[u8], limits: ArchiveLimits) -> Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wlite_docmodel::PmNode;
+    use docmodel::PmNode;
 
     fn document() -> PmDoc {
         PmDoc {
@@ -367,7 +365,7 @@ mod tests {
         .expect("фикстура");
         let limits = read::ReadLimits {
             max_nodes: 1,
-            max_depth: wlite_docmodel::MAX_DEPTH,
+            max_depth: docmodel::MAX_DEPTH,
         };
 
         let error = read::read_document_with_limits(&bytes, limits).expect_err("ожидалась ошибка");

@@ -1,10 +1,10 @@
 [package]
-name = "wlite-app-core"
+name = "app-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Общие ошибки и типы приложения WLite"
+description = "Общие ошибки и типы приложения LiteOffice Docs"
 
 [dependencies]
 base64.workspace = true
@@ -12,7 +12,7 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 tempfile.workspace = true
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
 
 [dev-dependencies]
 serde_json.workspace = true

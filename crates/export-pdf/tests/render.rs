@@ -1,6 +1,6 @@
+use docmodel::PmDoc;
+use export_pdf::{render, Margins, Orientation, PaperSize, PdfOptions};
 use serde_json::json;
-use wlite_docmodel::PmDoc;
-use wlite_export_pdf::{render, Margins, Orientation, PaperSize, PdfOptions};
 
 const TINY_PNG: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 

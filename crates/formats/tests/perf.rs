@@ -5,23 +5,23 @@
 //! 300-страничный RTF не упирается в лимит токенов. Точная команда запуска:
 //!
 //! ```text
-//! cargo test -p wlite-formats --test perf -- --ignored --nocapture
+//! cargo test -p formats --test perf -- --ignored --nocapture
 //! ```
 //!
 //! Методика: документ генерируется детерминированно (без `rand`), для каждого
 //! формата выполняется один прогревочный импорт, затем [`RUNS`] замеров; в отчёт
 //! идут медиана и минимум. Память считается глобальным аллокатором-обёрткой над
 //! `System`: пиковый прирост за один импорт. Пороги по умолчанию — 2000 мс и
-//! 500 МБ, переопределяются переменными `WLITE_PERF_MAX_MS` и
-//! `WLITE_PERF_MAX_MB`.
+//! 500 МБ, переопределяются переменными `LITEOFFICE_DOCS_PERF_MAX_MS` и
+//! `LITEOFFICE_DOCS_PERF_MAX_MB`.
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::env;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-use wlite_docmodel::{PmDoc, PmNode};
-use wlite_formats::{codec_for, DocumentFormat, ImportedDocument};
+use docmodel::{PmDoc, PmNode};
+use formats::{codec_for, DocumentFormat, ImportedDocument};
 
 const PAGES: usize = 300;
 const PARAGRAPHS_PER_PAGE: usize = 25;
@@ -384,8 +384,8 @@ fn imports_three_hundred_pages_within_budget() {
         peak_bytes: validate_peak,
     });
 
-    let max_ms = env_limit("WLITE_PERF_MAX_MS", DEFAULT_MAX_MS);
-    let max_mb = env_limit("WLITE_PERF_MAX_MB", DEFAULT_MAX_MB);
+    let max_ms = env_limit("LITEOFFICE_DOCS_PERF_MAX_MS", DEFAULT_MAX_MS);
+    let max_mb = env_limit("LITEOFFICE_DOCS_PERF_MAX_MB", DEFAULT_MAX_MB);
     let max_bytes = max_mb.saturating_mul(1024 * 1024);
 
     println!();
@@ -416,7 +416,7 @@ fn imports_three_hundred_pages_within_budget() {
 
     println!(
         "Пороги: время ≤ {max_ms} мс, пик памяти ≤ {max_mb} МБ \
-         (WLITE_PERF_MAX_MS, WLITE_PERF_MAX_MB)"
+         (LITEOFFICE_DOCS_PERF_MAX_MS, LITEOFFICE_DOCS_PERF_MAX_MB)"
     );
 
     for row in &measurements {

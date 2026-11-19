@@ -1,5 +1,5 @@
 export const ru = {
-  appName: "WLite",
+  appName: "LiteOffice Docs",
   untitled: "Без названия",
   browserMode: "Режим браузера: Rust-ядро недоступно",
   editorPlaceholder: "Начните печатать…",
@@ -154,7 +154,7 @@ export const ru = {
     replaced: (count: number) => `Заменено: ${count}`,
   },
   autosave: {
-    restoreTitle: "WLite",
+    restoreTitle: "LiteOffice Docs",
     restoreMessage: (count: number) =>
       count === 1
         ? "Найден несохранённый документ. Восстановить его?"
@@ -164,7 +164,7 @@ export const ru = {
   },
   start: {
     label: "Начало работы",
-    title: "Добро пожаловать в WLite",
+    title: "Добро пожаловать в LiteOffice Docs",
     subtitle: "Создайте новый документ или откройте недавний.",
     newDocument: "Новый документ",
     open: "Открыть…",

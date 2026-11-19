@@ -1,6 +1,6 @@
+use app_core::settings::{Settings, SettingsStore};
+use app_core::{AppError, AppResult};
 use tauri::{AppHandle, Manager};
-use wlite_app_core::settings::{Settings, SettingsStore};
-use wlite_app_core::{AppError, AppResult};
 
 use super::run_blocking;
 

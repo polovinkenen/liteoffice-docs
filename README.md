@@ -1,6 +1,6 @@
-[![CI](https://github.com/polovinkenen/wlite/actions/workflows/ci.yml/badge.svg)](https://github.com/polovinkenen/wlite/actions/workflows/ci.yml)
+[![CI](https://github.com/polovinkenen/liteoffice-docs/actions/workflows/ci.yml/badge.svg)](https://github.com/polovinkenen/liteoffice-docs/actions/workflows/ci.yml)
 
-# WLite
+# LiteOffice Docs
 
 Кроссплатформенный (macOS, Linux, Windows) редактор документов — аналог Word для
 повседневных задач. Ядро на Rust, интерфейс на React и TipTap, оболочка на Tauri 2.
@@ -67,7 +67,7 @@ PDF с постраничной вёрсткой.
 Файловые действия и работа с буфером обмена находятся в системном меню (на macOS —
 строка меню сверху экрана, на Linux и Windows — меню в верхней части окна):
 
-- **WLite** — «О WLite», «Скрыть», «Выйти из WLite» (`Cmd+Q` с защитой
+- **LiteOffice Docs** — «О LiteOffice Docs», «Скрыть», «Выйти из LiteOffice Docs» (`Cmd+Q` с защитой
   несохранённых изменений);
 - **Файл** — «Новый» (`Cmd+N`), «Открыть…» (`Cmd+O`), «Недавние» (последние
   открытые и сохранённые документы), «Сохранить» (`Cmd+S`), «Сохранить как…»
@@ -249,7 +249,7 @@ cargo +nightly fuzz run markdown_import -- -max_total_time=60 -rss_limit_mb=2048
 Сквозной бенчмарк импорта ядра:
 
 ```bash
-cargo test -p wlite-formats --test perf -- --ignored --nocapture
+cargo test -p formats --test perf -- --ignored --nocapture
 ```
 
 Документ объёмом ~300 страниц (300 × 25 абзацев) генерируется детерминированно на
@@ -265,8 +265,8 @@ cargo test -p wlite-formats --test perf -- --ignored --nocapture
 - экспорт документов и PDF-вёрстка.
 
 Пороги по умолчанию — 2000 мс медианы и 500 МБ пикового прироста памяти на каждый
-сценарий. Они переопределяются переменными окружения `WLITE_PERF_MAX_MS` и
-`WLITE_PERF_MAX_MB`.
+сценарий. Они переопределяются переменными окружения `LITEOFFICE_DOCS_PERF_MAX_MS` и
+`LITEOFFICE_DOCS_PERF_MAX_MB`.
 
 Куда смотреть при провале:
 - RTF — лимит `MAX_TOKENS` в `crates/formats-rtf/src/lexer.rs` (кириллица
@@ -290,26 +290,26 @@ Workflows:
 
 Скачать сборку:
 - из GitHub Releases — готовые файлы после релиза;
-- из Actions → нужный run → Artifacts (`wlite-macos-arm64`,
-  `wlite-windows-x64`, `wlite-linux-x64`).
+- из Actions → нужный run → Artifacts (`liteoffice-docs-macos-arm64`,
+  `liteoffice-docs-windows-x64`, `liteoffice-docs-linux-x64`).
 
 Локальная сборка macOS:
 ```bash
 npx tauri build --target aarch64-apple-darwin --bundles dmg
-# target/aarch64-apple-darwin/release/bundle/dmg/WLite_0.1.0_aarch64.dmg
+# target/aarch64-apple-darwin/release/bundle/dmg/LiteOffice Docs_0.1.0_aarch64.dmg
 ```
 
 Релиз:
 ```bash
-git tag -a v0.1.0 -m "WLite 0.1.0"
+git tag -a v0.1.0 -m "LiteOffice Docs 0.1.0"
 git push origin v0.1.0
 ```
 
 Подписи пока не настроены, поэтому установщики неподписанные:
-- macOS: правый клик по `WLite.app` → «Открыть» либо
-  `xattr -dr com.apple.quarantine /Applications/WLite.app`;
+- macOS: правый клик по `LiteOffice Docs.app` → «Открыть» либо
+  `xattr -dr com.apple.quarantine "/Applications/LiteOffice Docs.app"`;
 - Windows: SmartScreen → «Подробнее» → «Выполнить всё равно»;
-- Linux: `sudo dpkg -i wlite_*.deb` или `chmod +x WLite_*.AppImage`.
+- Linux: `sudo dpkg -i liteoffice-docs_*.deb` или `chmod +x LiteOffice*Docs_*.AppImage`.
 
 ## Структура
 

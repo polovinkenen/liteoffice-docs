@@ -1,10 +1,10 @@
 [package]
-name = "wlite-docmodel"
+name = "docmodel"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Модель документа WLite, совместимая со схемой ProseMirror"
+description = "Модель документа LiteOffice Docs, совместимая со схемой ProseMirror"
 
 [dependencies]
 serde.workspace = true

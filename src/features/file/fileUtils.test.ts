@@ -32,9 +32,9 @@ describe("basename", () => {
 
 describe("documentTitle", () => {
   it("показывает имя файла и признак изменений", () => {
-    expect(documentTitle("Заметка.md", false)).toBe("WLite — Заметка.md");
-    expect(documentTitle("Заметка.md", true)).toBe("WLite — Заметка.md *");
-    expect(documentTitle("", false)).toBe("WLite — Без названия");
+    expect(documentTitle("Заметка.md", false)).toBe("LiteOffice Docs — Заметка.md");
+    expect(documentTitle("Заметка.md", true)).toBe("LiteOffice Docs — Заметка.md *");
+    expect(documentTitle("", false)).toBe("LiteOffice Docs — Без названия");
   });
 });
 

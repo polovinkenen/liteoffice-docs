@@ -1,7 +1,7 @@
+use app_core::autosave::{AutosaveRecord, AutosaveStore, AutosaveSummary};
+use app_core::{AppError, AppResult};
+use docmodel::PmDoc;
 use tauri::{AppHandle, Manager};
-use wlite_app_core::autosave::{AutosaveRecord, AutosaveStore, AutosaveSummary};
-use wlite_app_core::{AppError, AppResult};
-use wlite_docmodel::PmDoc;
 
 use super::run_blocking;
 

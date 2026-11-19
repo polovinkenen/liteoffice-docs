@@ -15,7 +15,7 @@ pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "wlite=info".into()),
+                .unwrap_or_else(|_| "liteoffice_docs=info".into()),
         )
         .init();
 
@@ -59,7 +59,7 @@ pub fn run() {
             commands::pdf::open_pdf_preview
         ])
         .build(tauri::generate_context!())
-        .expect("не удалось собрать WLite");
+        .expect("не удалось собрать LiteOffice Docs");
 
     app.run(|app_handle, event| {
         if let RunEvent::ExitRequested { api, code, .. } = event {

@@ -1,10 +1,10 @@
 [package]
-name = "wlite-export-pdf"
+name = "export-pdf"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Экспорт документов WLite в PDF через Typst"
+description = "Экспорт документов LiteOffice Docs в PDF через Typst"
 
 [dependencies]
 base64.workspace = true
@@ -13,8 +13,8 @@ serde_json.workspace = true
 thiserror.workspace = true
 typst.workspace = true
 typst-pdf.workspace = true
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
-wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
+formats-core = { version = "0.1.0", path = "../formats-core" }
 
 [dev-dependencies]
 lopdf = "0.42"

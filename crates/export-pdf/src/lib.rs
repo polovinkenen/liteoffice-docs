@@ -5,7 +5,7 @@ mod fonts;
 mod options;
 mod world;
 
-use wlite_docmodel::PmDoc;
+use docmodel::PmDoc;
 
 pub use error::PdfError;
 pub use fonts::{resolve_family, FamilyResolution};
@@ -95,9 +95,9 @@ mod tests {
         let document = PmDoc {
             node_type: "doc".to_owned(),
             attrs: None,
-            content: vec![wlite_docmodel::PmNode::with_content(
+            content: vec![docmodel::PmNode::with_content(
                 "paragraph",
-                vec![wlite_docmodel::PmNode::text("Привет, мир!")],
+                vec![docmodel::PmNode::text("Привет, мир!")],
             )],
         };
         let options = PdfOptions {

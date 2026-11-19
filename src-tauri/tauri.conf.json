@@ -1,8 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "WLite",
+  "productName": "LiteOffice Docs",
   "version": "0.1.0",
-  "identifier": "com.wlite.desktop",
+  "identifier": "app.liteoffice.docs",
+  "mainBinaryName": "liteoffice-docs",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "WLite",
+        "title": "LiteOffice Docs",
         "width": 1280,
         "height": 860,
         "minWidth": 900,

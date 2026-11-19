@@ -1,19 +1,19 @@
 [package]
-name = "wlite-formats"
+name = "formats"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Реестр конвертеров документов WLite"
+description = "Реестр конвертеров документов LiteOffice Docs"
 
 [dependencies]
-wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
-wlite-formats-docx = { version = "0.1.0", path = "../formats-docx" }
-wlite-formats-html = { version = "0.1.0", path = "../formats-html" }
-wlite-formats-markdown = { version = "0.1.0", path = "../formats-markdown" }
-wlite-formats-rtf = { version = "0.1.0", path = "../formats-rtf" }
-wlite-formats-txt = { version = "0.1.0", path = "../formats-txt" }
+formats-core = { version = "0.1.0", path = "../formats-core" }
+formats-docx = { version = "0.1.0", path = "../formats-docx" }
+formats-html = { version = "0.1.0", path = "../formats-html" }
+formats-markdown = { version = "0.1.0", path = "../formats-markdown" }
+formats-rtf = { version = "0.1.0", path = "../formats-rtf" }
+formats-txt = { version = "0.1.0", path = "../formats-txt" }
 
 [dev-dependencies]
 serde_json.workspace = true
-wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+docmodel = { version = "0.1.0", path = "../docmodel" }
