@@ -1,6 +1,7 @@
 pub mod autosave;
 pub mod document;
 pub mod image;
+pub mod pdf;
 pub mod recent;
 pub mod settings;
 

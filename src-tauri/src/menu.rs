@@ -14,6 +14,7 @@ pub const FILE_NEW: &str = "file.new";
 pub const FILE_OPEN: &str = "file.open";
 pub const FILE_SAVE: &str = "file.save";
 pub const FILE_SAVE_AS: &str = "file.save-as";
+pub const FILE_EXPORT_PDF: &str = "file.export-pdf";
 pub const FILE_PRINT: &str = "file.print";
 pub const FILE_CLOSE_DOCUMENT: &str = "file.close-document";
 pub const FILE_CLOSE_WINDOW: &str = "file.close-window";
@@ -25,6 +26,7 @@ pub const EVENT_FILE_NEW: &str = "menu:file:new";
 pub const EVENT_FILE_OPEN: &str = "menu:file:open";
 pub const EVENT_FILE_SAVE: &str = "menu:file:save";
 pub const EVENT_FILE_SAVE_AS: &str = "menu:file:save-as";
+pub const EVENT_FILE_EXPORT_PDF: &str = "menu:file:export-pdf";
 pub const EVENT_FILE_CLOSE_DOCUMENT: &str = "menu:file:close-document";
 pub const EVENT_FILE_CLOSE_WINDOW: &str = "menu:file:close-window";
 pub const EVENT_FILE_PRINT_FALLBACK: &str = "menu:file:print-fallback";
@@ -55,6 +57,9 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let save_as = MenuItemBuilder::with_id(FILE_SAVE_AS, "Сохранить как…")
         .accelerator("CmdOrCtrl+Shift+S")
         .build(app)?;
+    let export_pdf = MenuItemBuilder::with_id(FILE_EXPORT_PDF, "Экспорт в PDF…")
+        .accelerator("CmdOrCtrl+Shift+E")
+        .build(app)?;
     let print = MenuItemBuilder::with_id(FILE_PRINT, "Печать…")
         .accelerator("CmdOrCtrl+P")
         .build(app)?;
@@ -72,6 +77,7 @@ pub fn build_menu<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .separator()
         .item(&save)
         .item(&save_as)
+        .item(&export_pdf)
         .separator()
         .item(&print)
         .separator()
@@ -260,6 +266,7 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: MenuEvent) {
         FILE_OPEN => EVENT_FILE_OPEN,
         FILE_SAVE => EVENT_FILE_SAVE,
         FILE_SAVE_AS => EVENT_FILE_SAVE_AS,
+        FILE_EXPORT_PDF => EVENT_FILE_EXPORT_PDF,
         FILE_CLOSE_DOCUMENT => EVENT_FILE_CLOSE_DOCUMENT,
         FILE_CLOSE_WINDOW => EVENT_FILE_CLOSE_WINDOW,
         EDIT_UNDO => EVENT_EDIT_UNDO,

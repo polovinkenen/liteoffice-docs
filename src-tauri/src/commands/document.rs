@@ -10,7 +10,7 @@ use wlite_formats::{codec_for, DocumentFormat};
 
 use super::run_blocking;
 
-fn asset_store(app: &AppHandle) -> AppResult<AssetStore> {
+pub(crate) fn asset_store(app: &AppHandle) -> AppResult<AssetStore> {
     let directory = app.path().app_data_dir().map_err(|error| {
         AppError::Internal(format!("не удалось определить каталог данных: {error}"))
     })?;

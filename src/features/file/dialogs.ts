@@ -76,6 +76,38 @@ export async function pickSavePath(
   return withFormatExtension(selected, chosenFormat);
 }
 
+export async function pickPdfPath(
+  currentPath: string | null,
+  title: string,
+): Promise<string | null> {
+  ensureTauri();
+
+  const selected = await save({
+    defaultPath: pdfDefaultPath(currentPath, title),
+    filters: [
+      {
+        name: "PDF",
+        extensions: ["pdf"],
+      },
+    ],
+  });
+
+  if (typeof selected !== "string") {
+    return null;
+  }
+
+  return /\.pdf$/i.test(selected) ? selected : `${selected}.pdf`;
+}
+
+function pdfDefaultPath(currentPath: string | null, title: string): string {
+  if (currentPath) {
+    const withoutExtension = currentPath.replace(/\.[^.\\/]+$/, "");
+    return `${withoutExtension}.pdf`;
+  }
+
+  return `${title.trim() || ru.untitled}.pdf`;
+}
+
 export function confirmDiscardChanges(
   documentName?: string,
 ): Promise<boolean> {

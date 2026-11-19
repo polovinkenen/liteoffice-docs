@@ -1,0 +1,22 @@
+[package]
+name = "wlite-export-pdf"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Экспорт документов WLite в PDF через Typst"
+
+[dependencies]
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+typst.workspace = true
+typst-pdf.workspace = true
+wlite-docmodel = { path = "../docmodel" }
+
+[dev-dependencies]
+lopdf = "0.38"
+pdf-extract = "0.12"
+serde_json.workspace = true
+tempfile.workspace = true

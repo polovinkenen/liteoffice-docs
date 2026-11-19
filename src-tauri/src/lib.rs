@@ -57,7 +57,9 @@ pub fn run() {
             commands::recent::remove_recent,
             commands::recent::clear_recent,
             commands::image::import_image,
-            commands::image::load_asset
+            commands::image::load_asset,
+            commands::pdf::export_pdf,
+            commands::pdf::open_pdf_preview
         ])
         .build(tauri::generate_context!())
         .expect("не удалось собрать WLite");

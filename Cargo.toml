@@ -11,6 +11,7 @@ members = [
     "crates/formats-rtf",
     "crates/formats-docx",
     "crates/formats",
+    "crates/export-pdf",
 ]
 
 [workspace.package]
@@ -26,3 +27,5 @@ serde_json = "1"
 thiserror = "2"
 tracing = "0.1"
 tempfile = "3"
+typst = "=0.14.2"
+typst-pdf = "=0.14.2"

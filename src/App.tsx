@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import Editor from "./editor/Editor";
 import DropOverlay from "./features/file/DropOverlay";
 import FileBanner from "./features/file/FileBanner";
 import SaveFormatDialog from "./features/file/SaveFormatDialog";
+import { MENU_EVENT } from "./features/file/menuEvents";
 import { useDropFiles } from "./features/file/useDropFiles";
+import PdfExportDialog from "./features/pdf/PdfExportDialog";
+import { usePdfExport } from "./features/pdf/usePdfExport";
 import SettingsMenu from "./features/settings/SettingsMenu";
 import { useSettings } from "./features/settings/useSettings";
 import { useDocumentWorkspace } from "./features/tabs/useDocumentWorkspace";
 import { ru } from "./i18n/ru";
-import { fetchAppInfo, type AppInfo } from "./lib/tauri";
+import { fetchAppInfo, isTauri, type AppInfo } from "./lib/tauri";
 
 export default function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
@@ -18,7 +22,33 @@ export default function App() {
     autosaveEnabled: settings.settings.autosaveEnabled,
   });
   const dragging = useDropFiles(workspace.openPaths);
+  const pdf = usePdfExport(workspace);
+  const showPdfExport = pdf.show;
   const active = workspace.activeTab;
+
+  useEffect(() => {
+    if (!isTauri()) {
+      return;
+    }
+
+    let stop: (() => void) | undefined;
+    let disposed = false;
+
+    void listen(MENU_EVENT.exportPdf, () => showPdfExport())
+      .then((unlisten) => {
+        if (disposed) {
+          unlisten();
+        } else {
+          stop = unlisten;
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      disposed = true;
+      stop?.();
+    };
+  }, [showPdfExport]);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,6 +111,18 @@ export default function App() {
           current={workspace.saveFormatPrompt.current}
           onConfirm={workspace.confirmSaveFormat}
           onCancel={workspace.cancelSaveFormat}
+        />
+      ) : null}
+      {pdf.open ? (
+        <PdfExportDialog
+          initial={pdf.initialOptions}
+          busy={pdf.busy}
+          error={pdf.error}
+          warnings={pdf.warnings}
+          result={pdf.result}
+          onPreview={(options) => void pdf.preview(options)}
+          onExport={(options) => void pdf.exportFile(options)}
+          onCancel={pdf.close}
         />
       ) : null}
       {dragging ? <DropOverlay /> : null}

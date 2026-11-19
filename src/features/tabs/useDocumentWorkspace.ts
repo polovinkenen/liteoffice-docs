@@ -71,6 +71,7 @@ export interface DocumentWorkspace {
   confirmSaveFormat: (format: DocumentFormat) => void;
   cancelSaveFormat: () => void;
   reportError: (cause: unknown) => void;
+  reportWarnings: (warnings: string[]) => void;
   dismissMessages: () => void;
   dismissStartScreen: (id?: string) => void;
   removeRecent: (path: string) => Promise<void>;
@@ -633,6 +634,15 @@ export function useDocumentWorkspace(
     [patchTab],
   );
 
+  const reportWarnings = useCallback(
+    (warnings: string[]) => {
+      if (warnings.length > 0) {
+        patchTab(activeIdRef.current, { warnings });
+      }
+    },
+    [patchTab],
+  );
+
   const dismissMessages = useCallback(() => {
     patchTab(activeIdRef.current, { error: null, warnings: [] });
   }, [patchTab]);
@@ -945,6 +955,7 @@ export function useDocumentWorkspace(
     confirmSaveFormat,
     cancelSaveFormat,
     reportError,
+    reportWarnings,
     dismissMessages,
     dismissStartScreen,
     removeRecent,

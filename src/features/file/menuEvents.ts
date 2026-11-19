@@ -3,6 +3,7 @@ export const MENU_EVENT = {
   open: "menu:file:open",
   save: "menu:file:save",
   saveAs: "menu:file:save-as",
+  exportPdf: "menu:file:export-pdf",
   closeDocument: "menu:file:close-document",
   closeWindow: "menu:file:close-window",
   printFallback: "menu:file:print-fallback",

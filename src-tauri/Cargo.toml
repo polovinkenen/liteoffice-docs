@@ -29,6 +29,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wlite-app-core = { path = "../crates/app-core" }
 wlite-docmodel = { path = "../crates/docmodel" }
 wlite-formats = { path = "../crates/formats" }
+wlite-export-pdf = { path = "../crates/export-pdf" }
 
 [dev-dependencies]
 tempfile.workspace = true
