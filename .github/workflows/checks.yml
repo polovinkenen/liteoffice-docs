@@ -43,7 +43,8 @@ jobs:
 
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          arguments: -W unmaintained
+          arguments: ""
+          command-arguments: -W unmaintained
 
   checks-cross-platform:
     strategy:
