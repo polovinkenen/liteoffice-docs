@@ -22,9 +22,6 @@ export default function StartScreen({
   return (
     <section className="start-screen" aria-label={ru.start.label}>
       <div className="start-screen__hero">
-        <span className="start-screen__mark" aria-hidden="true">
-          W
-        </span>
         <h2>{ru.start.title}</h2>
         <p>{ru.start.subtitle}</p>
         <div className="start-screen__actions">

@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri": "tauri",
-    "dev:desktop": "tauri dev",
+    "dev:desktop": "node scripts/dev.mjs",
     "build:desktop": "tauri build"
   },
   "dependencies": {

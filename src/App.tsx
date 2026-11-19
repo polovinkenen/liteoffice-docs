@@ -71,7 +71,7 @@ export default function App() {
       <header className="titlebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            W
+            D
           </span>
           <div>
             <h1>{ru.appName}</h1>
