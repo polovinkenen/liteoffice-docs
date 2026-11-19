@@ -7,6 +7,7 @@ use wlite_formats_core::{FormatError, ImportedDocument, WarningSink};
 
 use crate::style::{is_safe_link, merge_marks, paragraph_attrs, parse_declarations, text_marks};
 
+// Память на разбор ограничена сверху размером входа: app-core::files не читает больше 50 MiB.
 const MAX_DEPTH: usize = 256;
 const MAX_NODES: usize = 1_000_000;
 
@@ -68,15 +69,17 @@ const DROPPED_TAGS: &[&str] = &[
 ];
 
 const INLINE_TAGS: &[&str] = &[
-    "abbr", "b", "bdi", "bdo", "big", "br", "cite", "code", "data", "del", "dfn", "em", "font",
-    "i", "img", "ins", "kbd", "label", "mark", "q", "s", "samp", "small", "span", "strike",
+    "a", "abbr", "b", "bdi", "bdo", "big", "br", "cite", "code", "data", "del", "dfn", "em",
+    "font", "i", "img", "ins", "kbd", "label", "mark", "q", "s", "samp", "small", "span", "strike",
     "strong", "sub", "sup", "time", "tt", "u", "var",
 ];
 
 pub fn read_document(source: &str) -> Result<ImportedDocument, FormatError> {
     let html = Html::parse_document(source);
     let root = html.tree.root();
-    let body = find_element(root, "body").unwrap_or(root);
+    let mut visited = 0;
+    let mut truncated = false;
+    let body = find_element(root, "body", 0, &mut visited, &mut truncated).unwrap_or(root);
     let mut context = ReadContext::new();
     let mut content = context.convert_blocks(body, 0)?;
 
@@ -94,8 +97,25 @@ pub fn read_document(source: &str) -> Result<ImportedDocument, FormatError> {
     })
 }
 
-fn find_element<'a>(node: NodeRef<'a, Node>, name: &str) -> Option<NodeRef<'a, Node>> {
+fn find_element<'a>(
+    node: NodeRef<'a, Node>,
+    name: &str,
+    depth: usize,
+    visited: &mut usize,
+    truncated: &mut bool,
+) -> Option<NodeRef<'a, Node>> {
+    if depth > MAX_DEPTH {
+        *truncated = true;
+        return None;
+    }
+
     for child in node.children() {
+        if *visited >= MAX_NODES {
+            *truncated = true;
+            return None;
+        }
+        *visited += 1;
+
         if child
             .value()
             .as_element()
@@ -104,7 +124,7 @@ fn find_element<'a>(node: NodeRef<'a, Node>, name: &str) -> Option<NodeRef<'a, N
             return Some(child);
         }
 
-        if let Some(found) = find_element(child, name) {
+        if let Some(found) = find_element(child, name, depth + 1, visited, truncated) {
             return Some(found);
         }
     }
@@ -211,7 +231,7 @@ impl ReadContext {
         }
 
         if name == "pre" {
-            return Ok(vec![self.convert_code_block(node)]);
+            return Ok(vec![self.convert_code_block(node, depth)]);
         }
 
         if name == "ul" || name == "ol" {
@@ -436,21 +456,29 @@ impl ReadContext {
         Some(image)
     }
 
-    fn convert_code_block(&mut self, node: NodeRef<'_, Node>) -> PmNode {
-        let language = find_element(node, "code").and_then(|code| {
-            let element = code.value().as_element()?;
+    fn convert_code_block(&mut self, node: NodeRef<'_, Node>, depth: usize) -> PmNode {
+        let mut visited = 0;
+        let mut truncated = false;
+        let language =
+            find_element(node, "code", depth, &mut visited, &mut truncated).and_then(|code| {
+                let element = code.value().as_element()?;
 
-            element
-                .attr("class")?
-                .split_whitespace()
-                .find_map(|class| class.strip_prefix("language-").map(str::to_owned))
-        });
+                element
+                    .attr("class")?
+                    .split_whitespace()
+                    .find_map(|class| class.strip_prefix("language-").map(str::to_owned))
+            });
 
-        let mut literal = raw_text(node);
+        let mut visited = 0;
+        let mut literal = raw_text(node, depth, &mut visited, &mut truncated);
         if literal.starts_with('\n') {
             literal.remove(0);
         }
         let literal = literal.trim_end_matches('\n').to_owned();
+
+        if truncated {
+            self.warn("Содержимое блока кода усечено из-за лимита.");
+        }
 
         let mut block = PmNode::with_content("codeBlock", vec![PmNode::text(literal)]);
 
@@ -537,8 +565,9 @@ impl ReadContext {
         depth: usize,
     ) -> Result<PmNode, FormatError> {
         let mut rows = Vec::new();
+        let mut visited = 0;
 
-        for row in descendants(node, "tr") {
+        for row in descendants(node, "tr", depth, &mut visited) {
             let mut cells = Vec::new();
 
             for cell in row.children() {
@@ -631,10 +660,24 @@ fn has_block_children(node: NodeRef<'_, Node>) -> bool {
     })
 }
 
-fn descendants<'a>(node: NodeRef<'a, Node>, name: &str) -> Vec<NodeRef<'a, Node>> {
+fn descendants<'a>(
+    node: NodeRef<'a, Node>,
+    name: &str,
+    depth: usize,
+    visited: &mut usize,
+) -> Vec<NodeRef<'a, Node>> {
     let mut found = Vec::new();
 
+    if depth > MAX_DEPTH {
+        return found;
+    }
+
     for child in node.children() {
+        if *visited >= MAX_NODES {
+            break;
+        }
+        *visited += 1;
+
         if child
             .value()
             .as_element()
@@ -642,22 +685,38 @@ fn descendants<'a>(node: NodeRef<'a, Node>, name: &str) -> Vec<NodeRef<'a, Node>
         {
             found.push(child);
         } else if child.value().is_element() {
-            found.extend(descendants(child, name));
+            found.extend(descendants(child, name, depth + 1, visited));
         }
     }
 
     found
 }
 
-fn raw_text(node: NodeRef<'_, Node>) -> String {
+fn raw_text(
+    node: NodeRef<'_, Node>,
+    depth: usize,
+    visited: &mut usize,
+    truncated: &mut bool,
+) -> String {
     let mut text = String::new();
 
+    if depth > MAX_DEPTH {
+        *truncated = true;
+        return text;
+    }
+
     for child in node.children() {
+        if *visited >= MAX_NODES {
+            *truncated = true;
+            break;
+        }
+        *visited += 1;
+
         match child.value() {
             Node::Text(value) => text.push_str(value),
             Node::Element(element) if element.name() == "br" => text.push('\n'),
             Node::Element(_) | Node::Document | Node::Fragment => {
-                text.push_str(&raw_text(child));
+                text.push_str(&raw_text(child, depth + 1, visited, truncated));
             }
             Node::Comment(_) | Node::Doctype(_) | Node::ProcessingInstruction(_) => {}
         }
@@ -940,6 +999,31 @@ mod tests {
     }
 
     #[test]
+    fn parses_links_without_unsupported_tag_warning() {
+        let imported = read(r#"<p><a href="https://example.com">x</a></p>"#);
+
+        assert!(imported.warnings.is_empty(), "{:?}", imported.warnings);
+
+        let node = &imported.document.content[0].content[0];
+        let mark = node
+            .marks
+            .iter()
+            .find(|mark| mark.mark_type == "link")
+            .expect("ссылка");
+
+        assert_eq!(mark.attrs.as_ref().unwrap()["href"], "https://example.com");
+    }
+
+    #[test]
+    fn warns_once_for_unsafe_links() {
+        let imported = read(r#"<p><a href="javascript:alert(1)">x</a></p>"#);
+
+        assert_eq!(imported.warnings.len(), 1, "{:?}", imported.warnings);
+        assert!(imported.warnings[0].contains("небезопасн"));
+        assert!(!imported.warnings[0].contains("Тег"));
+    }
+
+    #[test]
     fn rejects_too_deep_markup() {
         let mut source = String::new();
         for _ in 0..300 {
@@ -961,5 +1045,47 @@ mod tests {
 
         assert_eq!(types(&imported.document), vec!["paragraph"]);
         assert!(imported.document.content[0].content.is_empty());
+    }
+
+    #[test]
+    fn rejects_too_deep_markup_inside_table_cell() {
+        let mut source = String::from("<table><tr><td>");
+        for _ in 0..400 {
+            source.push_str("<div>");
+        }
+        source.push_str("текст");
+        for _ in 0..400 {
+            source.push_str("</div>");
+        }
+        source.push_str("</td></tr></table>");
+
+        let error = read_document(&source).expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("глубина"));
+    }
+
+    #[test]
+    fn warns_when_code_block_is_truncated() {
+        let mut source = String::from("<pre><code>HEAD");
+        for _ in 0..300 {
+            source.push_str("<span>");
+        }
+        source.push_str("SECRET-TAIL");
+        for _ in 0..300 {
+            source.push_str("</span>");
+        }
+        source.push_str("</code></pre>");
+
+        let imported = read(&source);
+
+        assert_eq!(types(&imported.document), vec!["codeBlock"]);
+        assert_eq!(
+            imported.document.content[0].content[0].text.as_deref(),
+            Some("HEAD")
+        );
+        assert!(imported
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("усечено")));
     }
 }

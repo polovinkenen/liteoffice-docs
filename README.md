@@ -54,12 +54,13 @@ PDF с постраничной вёрсткой.
 - индикатор версии Rust-ядра;
 - светлая и тёмная темы (следует системной);
 - модель документа на базе ProseMirror JSON с валидацией и лимитами;
-- CI: проверки на Ubuntu, сборка бандлов на трёх ОС.
+- CI: проверки на Ubuntu, macOS и Windows; сборка установщиков на трёх ОС — `.dmg`
+  (macOS), `.exe` (NSIS) и `.msi` (Windows), `.deb` и `.AppImage` (Linux); см.
+  «Установщики».
 
 Планируется:
 - колонтитулы и нумерация страниц в самом документе (в PDF они задаются при
-  экспорте);
-- установщики `.dmg`, `.msi`, `.AppImage`/`.deb`.
+  экспорте).
 
 ## Меню
 
@@ -107,9 +108,12 @@ PDF с постраничной вёрсткой.
 - новые документы без пути автосохраняются как черновики в `<app-data>/autosave`;
 - при следующем запуске приложение предлагает восстановить найденные черновики.
   Если отказаться, черновики очищаются;
-- при закрытии вкладки или выходе с несохранёнными изменениями (правка была меньше
-  1,5 секунды назад) приложение спрашивает подтверждение и при отказе от сохранения
-  отменяет автосохранение и удаляет черновик.
+- при закрытии вкладки или выходе приложение спрашивает подтверждение, пока у
+  вкладки стоит признак несохранённых изменений. У документа с путём этот признак
+  снимается после автосохранения в сам файл; у нового документа без пути запись
+  черновика его не снимает, поэтому подтверждение при закрытии появится и после
+  автосохранения. При отказе от сохранения приложение отменяет автосохранение и
+  удаляет черновик.
 
 ## Настройки
 
@@ -181,12 +185,15 @@ PDF с постраничной вёрсткой.
 | Оболочка | Tauri 2.12 |
 | Интерфейс | React 19, TypeScript 5.9, Vite 8, TipTap 3.34 |
 | Ядро | Rust 1.90+ (MSRV), `serde`, `thiserror`, `tracing`, `tempfile` |
-| Форматы | `comrak` (GFM), `scraper` (HTML), `docx-rs` (DOCX), собственный RTF, `encoding_rs`; в планах `typst`/`typst-pdf` |
+| Форматы | `comrak` (GFM), `scraper` (HTML), `docx-rs` (DOCX), собственный RTF, `encoding_rs`; PDF — `typst`/`typst-pdf` |
 
 ## Требования
 
 - Node.js 22+ и npm;
 - Rust 1.90+ (`rustup update stable`);
+- `cargo install cargo-deny --locked` для проверки зависимостей
+  (`cargo deny check -W unmaintained`: unmaintained-адвизории печатаются как
+  warning и не роняют проверку);
 - macOS: Xcode Command Line Tools;
 - Windows: WebView2 (в современных версиях Windows уже установлен);
 - Linux: `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf`.
@@ -215,10 +222,59 @@ npm run dev
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript без эмита |
 | `npm run test` | frontend-тесты (Vitest) |
-| `make check` | eslint, tsc, vitest, rustfmt, clippy |
+| `make check` | eslint, tsc, vitest, Rust-тесты, rustfmt, clippy, cargo-deny |
+| `make deny` | проверка зависимостей через cargo-deny (`cargo deny check -W unmaintained`) |
 | `cargo test --workspace` | Rust-тесты |
 | `npx tauri build --no-bundle` | сборка release-бинарника без установщика |
 | `npx tauri build --bundles dmg` | локальная сборка macOS-установщика |
+
+### Fuzz-тесты импорта
+
+Каркас cargo-fuzz лежит в `fuzz/` (вне workspace, чтобы не замедлять обычные
+проверки). Таргеты: `markdown_import`, `html_import`, `rtf_import`, `txt_import`,
+`docx_import`. Нужны nightly и cargo-fuzz:
+
+```bash
+rustup toolchain install nightly --profile minimal
+cargo install cargo-fuzz --locked
+cargo +nightly fuzz run markdown_import -- -max_total_time=60 -rss_limit_mb=2048
+```
+
+Входные данные длиннее 1 MiB пропускаются. Упавшие примеры складываются в
+`fuzz/artifacts/<target>/`, корпус — в `fuzz/corpus/<target>/`; оба каталога в
+`.gitignore`. Еженедельный прогон всех таргетов выполняет workflow `Fuzz`.
+
+## Бенчмарки производительности
+
+Сквозной бенчмарк импорта ядра:
+
+```bash
+cargo test -p wlite-formats --test perf -- --ignored --nocapture
+```
+
+Документ объёмом ~300 страниц (300 × 25 абзацев) генерируется детерминированно на
+русском языке (кириллица). Для каждого сценария выполняется прогревочный импорт,
+затем три замера; в таблицу попадают медиана, минимум и пиковый прирост памяти.
+
+Что меряется:
+- импорт core-кодеков: TXT, Markdown, HTML, RTF, DOCX;
+- разбор JSON модели документа и `PmDoc::validate` — как ориентир для IPC.
+
+Что не меряется:
+- вебвью и React/TipTap: рендер, ввод, прокрутка и стоимость IPC;
+- экспорт документов и PDF-вёрстка.
+
+Пороги по умолчанию — 2000 мс медианы и 500 МБ пикового прироста памяти на каждый
+сценарий. Они переопределяются переменными окружения `WLITE_PERF_MAX_MS` и
+`WLITE_PERF_MAX_MB`.
+
+Куда смотреть при провале:
+- RTF — лимит `MAX_TOKENS` в `crates/formats-rtf/src/lexer.rs` (кириллица
+  записывается как `\uNNNN?`, то есть примерно два токена на символ) и стоимость
+  лексера/парсера;
+- DOCX — распаковку zip и построение модели;
+- память — лимиты импорта (`MAX_NODES`) и размер промежуточных токенов.
+Фактическую таблицу чисел всегда печатает сам тест.
 
 ## Установщики
 
@@ -270,6 +326,7 @@ git push origin v0.1.0
 │   ├── lib/                модель документа и Tauri IPC
 │   └── i18n/               строки интерфейса
 ├── src-tauri/              окно, команды, capabilities, конфигурация Tauri
+├── docs/                   архитектура, форматы, ограничения, сборка, ADR
 ├── crates/
 │   ├── app-core/           ошибки, IPC, файлы, assets, автосохранения, настройки, недавние
 │   ├── docmodel/           модель ProseMirror JSON и валидация
@@ -279,10 +336,25 @@ git push origin v0.1.0
 │   ├── formats-html/       импорт с санитизацией и экспорт HTML
 │   ├── formats-rtf/        собственный парсер и writer RTF
 │   ├── formats-docx/       импорт и экспорт DOCX
-│   └── formats/            реестр конвертеров
+│   ├── formats/            реестр конвертеров
+│   └── export-pdf/         конвертация модели в Typst-разметку и сборка PDF
+├── fuzz/                   cargo-fuzz таргеты импорта (вне workspace)
+├── tests/fixtures/         общие фикстуры тестов
 ├── Cargo.toml              Rust workspace
 └── .github/workflows/      CI для macOS, Linux и Windows
 ```
+
+## Документация
+
+- [docs/architecture.md](docs/architecture.md) — слои, потоки открытия/сохранения,
+  автосохранение, PDF, меню, вкладки и границы доверия;
+- [docs/formats.md](docs/formats.md) — матрица форматов, ссылки, лимиты,
+  golden/fuzz/perf;
+- [docs/limitations.md](docs/limitations.md) — известные ограничения;
+- [docs/build.md](docs/build.md) — сборка, CI, fuzz, бенчмарк и troubleshooting;
+- [docs/acceptance.md](docs/acceptance.md) — матрица форматов, автоматические
+  проверки, CI на всех ОС, ручной чек-лист приёмки и открытые пункты;
+- [docs/adr/](docs/adr/) — архитектурные решения.
 
 ## Модель документа
 

@@ -10,9 +10,9 @@ description = "Импорт и экспорт DOCX для WLite"
 base64.workspace = true
 docx-rs = "0.4.22"
 serde_json.workspace = true
-zip = "8.6"
-wlite-docmodel = { path = "../docmodel" }
-wlite-formats-core = { path = "../formats-core" }
+zip = { version = "8.6", default-features = false, features = ["deflate"] }
+wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
 
 [dev-dependencies]
 tempfile.workspace = true

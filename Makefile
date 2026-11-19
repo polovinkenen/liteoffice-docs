@@ -1,4 +1,4 @@
-.PHONY: install dev build lint typecheck test fmt fmt-check clippy check
+.PHONY: install dev build lint typecheck test test-rust fmt fmt-check clippy deny check
 
 install:
 	npm ci
@@ -18,6 +18,9 @@ typecheck:
 test:
 	npm run test
 
+test-rust:
+	cargo test --workspace
+
 fmt:
 	cargo fmt --all
 
@@ -27,4 +30,7 @@ fmt-check:
 clippy:
 	cargo clippy --workspace --all-targets -- -D warnings
 
-check: lint typecheck test fmt-check clippy
+deny:
+	cargo deny check -W unmaintained
+
+check: lint typecheck test test-rust fmt-check clippy deny

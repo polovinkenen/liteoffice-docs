@@ -7,12 +7,13 @@ license.workspace = true
 description = "Реестр конвертеров документов WLite"
 
 [dependencies]
-wlite-formats-core = { path = "../formats-core" }
-wlite-formats-docx = { path = "../formats-docx" }
-wlite-formats-html = { path = "../formats-html" }
-wlite-formats-markdown = { path = "../formats-markdown" }
-wlite-formats-rtf = { path = "../formats-rtf" }
-wlite-formats-txt = { path = "../formats-txt" }
+wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
+wlite-formats-docx = { version = "0.1.0", path = "../formats-docx" }
+wlite-formats-html = { version = "0.1.0", path = "../formats-html" }
+wlite-formats-markdown = { version = "0.1.0", path = "../formats-markdown" }
+wlite-formats-rtf = { version = "0.1.0", path = "../formats-rtf" }
+wlite-formats-txt = { version = "0.1.0", path = "../formats-txt" }
 
 [dev-dependencies]
-wlite-docmodel = { path = "../docmodel" }
+serde_json.workspace = true
+wlite-docmodel = { version = "0.1.0", path = "../docmodel" }

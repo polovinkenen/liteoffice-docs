@@ -9,5 +9,5 @@ description = "Импорт и экспорт Markdown (GFM) для WLite"
 [dependencies]
 comrak = { version = "0.59", default-features = false }
 serde_json.workspace = true
-wlite-docmodel = { path = "../docmodel" }
-wlite-formats-core = { path = "../formats-core" }
+wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+wlite-formats-core = { version = "0.1.0", path = "../formats-core" }

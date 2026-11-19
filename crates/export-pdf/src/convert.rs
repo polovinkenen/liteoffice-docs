@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use base64::Engine;
 use serde_json::Value;
 use wlite_docmodel::{PmDoc, PmMark, PmNode};
+use wlite_formats_core::is_safe_link;
 
 use crate::escape::{escape_markup, page_text_markup, typst_string};
 use crate::fonts::{resolve_family, FamilyResolution, SERIF_FAMILY};
@@ -245,7 +246,7 @@ impl Converter {
                     return content;
                 };
 
-                if !safe_link(href) {
+                if !is_safe_link(href) {
                     self.warn(format!("Ссылка «{href}» не сохранена в PDF"));
                     return content;
                 }
@@ -626,16 +627,6 @@ fn typst_size(value: &str) -> Option<String> {
     }
 
     Some(format!("{}pt", trim_number(number * factor)))
-}
-
-fn safe_link(href: &str) -> bool {
-    if href.chars().any(char::is_control) {
-        return false;
-    }
-
-    let lower = href.to_ascii_lowercase();
-
-    !lower.starts_with("javascript:") && !lower.starts_with("data:") && !lower.starts_with("file:")
 }
 
 fn node_text(node: &PmNode) -> String {

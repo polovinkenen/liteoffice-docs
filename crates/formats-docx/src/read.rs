@@ -7,8 +7,8 @@ use docx_rs::{
     RunChild, TableCellContent, TableChild, TableRowChild,
 };
 use serde_json::{json, Map, Value};
-use wlite_docmodel::{PmDoc, PmMark, PmNode};
-use wlite_formats_core::{FormatError, ImportedDocument, WarningSink};
+use wlite_docmodel::{PmDoc, PmMark, PmNode, MAX_DEPTH, MAX_NODES};
+use wlite_formats_core::{is_safe_link, FormatError, ImportedDocument, WarningSink};
 
 use crate::units::{
     canonical_font_family, font_size_points, format_color, line_height_from_twips, parse_color,
@@ -18,20 +18,42 @@ use crate::units::{
 
 const MAX_IMAGE_BYTES: usize = 15 * 1024 * 1024;
 
+#[derive(Clone, Copy)]
+pub(crate) struct ReadLimits {
+    pub(crate) max_nodes: usize,
+    pub(crate) max_depth: usize,
+}
+
+impl Default for ReadLimits {
+    fn default() -> Self {
+        Self {
+            max_nodes: MAX_NODES,
+            max_depth: MAX_DEPTH,
+        }
+    }
+}
+
 pub fn read_document(bytes: &[u8]) -> Result<ImportedDocument, FormatError> {
+    read_document_with_limits(bytes, ReadLimits::default())
+}
+
+pub(crate) fn read_document_with_limits(
+    bytes: &[u8],
+    limits: ReadLimits,
+) -> Result<ImportedDocument, FormatError> {
     let docx = docx_rs::read_docx_with_options(
         bytes,
         ReadDocxOptions::default().with_image_previews(false),
     )
     .map_err(|error| FormatError::Parse(format!("не удалось прочитать DOCX: {error:?}")))?;
 
-    let mut context = ReadContext::new(&docx);
+    let mut context = ReadContext::new(&docx, limits);
     context.warn_headers(&docx);
 
     let mut blocks = Vec::new();
 
     for child in &docx.document.children {
-        context.convert_document_child(child, &mut blocks);
+        context.convert_document_child(child, &mut blocks, 1)?;
     }
 
     let content = finalize_blocks(blocks);
@@ -88,10 +110,11 @@ struct ReadContext {
     numberings: HashMap<usize, Vec<NumberLevel>>,
     warnings: WarningSink,
     nodes: usize,
+    limits: ReadLimits,
 }
 
 impl ReadContext {
-    fn new(docx: &Docx) -> Self {
+    fn new(docx: &Docx, limits: ReadLimits) -> Self {
         let mut headings = HashMap::new();
 
         for style in &docx.styles.styles {
@@ -161,7 +184,28 @@ impl ReadContext {
             numberings,
             warnings: WarningSink::new(),
             nodes: 0,
+            limits,
         }
+    }
+
+    fn enter(&mut self, depth: usize) -> Result<(), FormatError> {
+        if depth > self.limits.max_depth {
+            return Err(FormatError::Parse(format!(
+                "превышена максимальная глубина вложенности DOCX {}",
+                self.limits.max_depth
+            )));
+        }
+
+        self.nodes += 1;
+
+        if self.nodes > self.limits.max_nodes {
+            return Err(FormatError::Parse(format!(
+                "превышено максимальное число узлов DOCX {}",
+                self.limits.max_nodes
+            )));
+        }
+
+        Ok(())
     }
 
     fn warn_headers(&mut self, docx: &Docx) {
@@ -179,13 +223,18 @@ impl ReadContext {
         }
     }
 
-    fn convert_document_child(&mut self, child: &DocumentChild, blocks: &mut Vec<Draft>) {
+    fn convert_document_child(
+        &mut self,
+        child: &DocumentChild,
+        blocks: &mut Vec<Draft>,
+        depth: usize,
+    ) -> Result<(), FormatError> {
         match child {
             DocumentChild::Paragraph(paragraph) => {
-                blocks.extend(self.convert_paragraph(paragraph));
+                blocks.extend(self.convert_paragraph(paragraph, depth)?);
             }
             DocumentChild::Table(table) => {
-                if let Some(node) = self.convert_table(table) {
+                if let Some(node) = self.convert_table(table, depth)? {
                     blocks.push(Draft::Table(node));
                 }
             }
@@ -195,10 +244,10 @@ impl ReadContext {
                 for child in section.children() {
                     match child {
                         docx_rs::SectionChild::Paragraph(paragraph) => {
-                            blocks.extend(self.convert_paragraph(paragraph.as_ref()));
+                            blocks.extend(self.convert_paragraph(paragraph.as_ref(), depth + 1)?);
                         }
                         docx_rs::SectionChild::Table(table) => {
-                            if let Some(node) = self.convert_table(table.as_ref()) {
+                            if let Some(node) = self.convert_table(table.as_ref(), depth + 1)? {
                                 blocks.push(Draft::Table(node));
                             }
                         }
@@ -220,9 +269,16 @@ impl ReadContext {
             | DocumentChild::CommentStart(_)
             | DocumentChild::CommentEnd(_) => {}
         }
+
+        Ok(())
     }
 
-    fn convert_paragraph(&mut self, paragraph: &Paragraph) -> Vec<Draft> {
+    fn convert_paragraph(
+        &mut self,
+        paragraph: &Paragraph,
+        depth: usize,
+    ) -> Result<Vec<Draft>, FormatError> {
+        self.enter(depth)?;
         let property = serde_json::to_value(&paragraph.property).unwrap_or(Value::Null);
         let heading = self.heading_level(&property);
         let list_meta = self.list_meta(&property);
@@ -230,7 +286,7 @@ impl ReadContext {
         let mut page_break = false;
 
         for child in &paragraph.children {
-            self.convert_paragraph_child(child, &[], &mut content, &mut page_break);
+            self.convert_paragraph_child(child, &[], &mut content, &mut page_break, depth + 1)?;
         }
 
         trim_nodes(&mut content);
@@ -242,12 +298,12 @@ impl ReadContext {
 
         if content.is_empty() && page_break {
             drafts.push(Draft::Atom(atom("pageBreak")));
-            return drafts;
+            return Ok(drafts);
         }
 
         if content.is_empty() && has_bottom_border(&property) {
             drafts.push(Draft::Atom(atom("horizontalRule")));
-            return drafts;
+            return Ok(drafts);
         }
 
         let list = list_meta.map(|mut meta| {
@@ -275,7 +331,7 @@ impl ReadContext {
             drafts.push(Draft::Atom(atom("pageBreak")));
         }
 
-        drafts
+        Ok(drafts)
     }
 
     fn convert_paragraph_child(
@@ -284,10 +340,11 @@ impl ReadContext {
         marks: &[PmMark],
         content: &mut Vec<PmNode>,
         page_break: &mut bool,
-    ) {
+        depth: usize,
+    ) -> Result<(), FormatError> {
         match child {
             ParagraphChild::Run(run) => {
-                self.convert_run(run, marks, content, page_break);
+                self.convert_run(run, marks, content, page_break, depth)?;
             }
             ParagraphChild::Hyperlink(hyperlink) => {
                 let link = match &hyperlink.link {
@@ -321,7 +378,7 @@ impl ReadContext {
                 }
 
                 for child in &hyperlink.children {
-                    self.convert_paragraph_child(child, &nested, content, page_break);
+                    self.convert_paragraph_child(child, &nested, content, page_break, depth + 1)?;
                 }
             }
             ParagraphChild::Insert(_)
@@ -345,6 +402,8 @@ impl ReadContext {
             | ParagraphChild::CommentStart(_)
             | ParagraphChild::CommentEnd(_) => {}
         }
+
+        Ok(())
     }
 
     fn convert_run(
@@ -353,7 +412,8 @@ impl ReadContext {
         marks: &[PmMark],
         content: &mut Vec<PmNode>,
         page_break: &mut bool,
-    ) {
+        depth: usize,
+    ) -> Result<(), FormatError> {
         let property = serde_json::to_value(&run.run_property).unwrap_or(Value::Null);
         let mut marks = marks.to_vec();
 
@@ -364,13 +424,15 @@ impl ReadContext {
         for child in &run.children {
             match child {
                 RunChild::Text(text) => {
-                    self.nodes += 1;
+                    self.enter(depth)?;
                     push_text(content, &text.text, &marks);
                 }
                 RunChild::Tab(_) | RunChild::PTab(_) => {
+                    self.enter(depth)?;
                     push_text(content, "\t", &marks);
                 }
                 RunChild::Break(br) => {
+                    self.enter(depth)?;
                     let break_type = serde_json::to_value(br)
                         .ok()
                         .and_then(|value| {
@@ -387,10 +449,14 @@ impl ReadContext {
                         _ => content.push(atom("hardBreak")),
                     }
                 }
-                RunChild::CarriageReturn(_) => content.push(atom("hardBreak")),
+                RunChild::CarriageReturn(_) => {
+                    self.enter(depth)?;
+                    content.push(atom("hardBreak"));
+                }
                 RunChild::Drawing(drawing) => {
                     if let Some(DrawingData::Pic(pic)) = &drawing.data {
                         if let Some(image) = self.image_node(&pic.id) {
+                            self.enter(depth)?;
                             content.push(image);
                         }
                     } else {
@@ -405,6 +471,7 @@ impl ReadContext {
                 RunChild::Sym(sym) => {
                     if let Ok(value) = u32::from_str_radix(&sym.char, 16) {
                         if let Some(character) = char::from_u32(value) {
+                            self.enter(depth)?;
                             push_text(content, &character.to_string(), &marks);
                         }
                     }
@@ -426,6 +493,8 @@ impl ReadContext {
                 RunChild::Shading(_) | RunChild::CommentStart(_) | RunChild::CommentEnd(_) => {}
             }
         }
+
+        Ok(())
     }
 
     fn run_marks(&self, property: &Value) -> Vec<PmMark> {
@@ -553,17 +622,24 @@ impl ReadContext {
         Some(ListMeta { kind, level })
     }
 
-    fn convert_table(&mut self, table: &docx_rs::Table) -> Option<PmNode> {
+    fn convert_table(
+        &mut self,
+        table: &docx_rs::Table,
+        depth: usize,
+    ) -> Result<Option<PmNode>, FormatError> {
+        self.enter(depth)?;
         let mut rows: Vec<Vec<PmNode>> = Vec::new();
         let mut merges: HashMap<usize, (usize, usize)> = HashMap::new();
 
         for row in &table.rows {
             let TableChild::TableRow(row) = row;
+            self.enter(depth + 1)?;
             let mut cells = Vec::new();
             let mut column = 0;
 
             for cell in &row.cells {
                 let TableRowChild::TableCell(cell) = cell;
+                self.enter(depth + 2)?;
                 let property = serde_json::to_value(&cell.property).unwrap_or(Value::Null);
                 let colspan = property
                     .get("gridSpan")
@@ -599,7 +675,7 @@ impl ReadContext {
                 for child in &cell.children {
                     match child {
                         TableCellContent::Paragraph(paragraph) => {
-                            for draft in self.convert_paragraph(paragraph) {
+                            for draft in self.convert_paragraph(paragraph, depth + 3)? {
                                 match draft {
                                     Draft::Paragraph { node, .. } | Draft::Atom(node) => {
                                         content.push(node)
@@ -653,15 +729,15 @@ impl ReadContext {
 
         if rows.is_empty() {
             self.warnings.warn("Пустая таблица DOCX была пропущена.");
-            return None;
+            return Ok(None);
         }
 
-        Some(PmNode::with_content(
+        Ok(Some(PmNode::with_content(
             "table",
             rows.into_iter()
                 .map(|cells| PmNode::with_content("tableRow", cells))
                 .collect(),
-        ))
+        )))
     }
 }
 
@@ -903,16 +979,6 @@ fn strip_task_marker(content: &mut [PmNode]) -> Option<bool> {
     node.text = Some(rest.to_owned());
 
     Some(checked)
-}
-
-fn is_safe_link(url: &str) -> bool {
-    let lowered = url.trim().to_ascii_lowercase();
-
-    !lowered.is_empty()
-        && !lowered.starts_with("javascript:")
-        && !lowered.starts_with("vbscript:")
-        && !lowered.starts_with("data:text/html")
-        && !lowered.chars().any(char::is_control)
 }
 
 fn atom(node_type: &str) -> PmNode {

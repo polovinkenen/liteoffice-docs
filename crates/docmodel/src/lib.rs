@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 pub const SCHEMA_VERSION: u32 = 1;
 
-const MAX_DEPTH: usize = 256;
-const MAX_NODES: usize = 1_000_000;
+pub const MAX_DEPTH: usize = 256;
+pub const MAX_NODES: usize = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PmDoc {

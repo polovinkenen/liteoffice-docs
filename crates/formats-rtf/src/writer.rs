@@ -4,7 +4,7 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use serde_json::Value;
 use wlite_docmodel::{PmDoc, PmNode};
-use wlite_formats_core::{FormatError, WarningSink, WrittenDocument};
+use wlite_formats_core::{is_safe_link, FormatError, WarningSink, WrittenDocument};
 
 use crate::style::{
     font_size_half_points, line_height_twips, parse_color, rtf_font_name, DEFAULT_FONT_NAME,
@@ -624,14 +624,20 @@ impl WriteContext {
             .filter(|href| !href.is_empty());
 
         if let Some(link) = link {
-            output.push_str("{\\field{\\*\\fldinst{HYPERLINK \"");
-            write_field_url(output, link);
-            output.push_str("\"}}{\\fldrslt{");
-            self.write_formatted_text(node, text, output);
-            output.push_str("}}}");
-        } else {
-            self.write_formatted_text(node, text, output);
+            if is_safe_link(link) {
+                output.push_str("{\\field{\\*\\fldinst{HYPERLINK \"");
+                write_field_url(output, link);
+                output.push_str("\"}}{\\fldrslt{");
+                self.write_formatted_text(node, text, output);
+                output.push_str("}}}");
+                return;
+            }
+
+            self.warnings
+                .warn("Ссылка с небезопасным адресом не сохраняется в RTF.");
         }
+
+        self.write_formatted_text(node, text, output);
     }
 
     fn write_formatted_text(&mut self, node: &PmNode, text: &str, output: &mut String) {
@@ -892,6 +898,7 @@ fn write_unicode_escape(output: &mut String, character: char) {
 mod tests {
     use super::*;
     use serde_json::json;
+    use wlite_docmodel::PmMark;
 
     fn write(document: &PmDoc) -> WrittenDocument {
         crate::codec().write(document).expect("запись RTF")
@@ -947,5 +954,86 @@ mod tests {
         assert!(written.text.contains("\\trhdr"));
         assert!(written.text.contains("\\cell"));
         assert!(written.text.contains("\\row"));
+    }
+
+    fn link_mark(href: &str) -> PmMark {
+        let mut mark = PmMark::new("link");
+        mark.attrs = Some(json!({ "href": href }));
+        mark
+    }
+
+    #[test]
+    fn drops_unsafe_links_on_write() {
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode::with_content(
+                "paragraph",
+                vec![
+                    PmNode {
+                        marks: vec![link_mark("javascript:alert(1)")],
+                        ..PmNode::text("опасная")
+                    },
+                    PmNode::text(" "),
+                    PmNode {
+                        marks: vec![link_mark("https://example.com")],
+                        ..PmNode::text("безопасная")
+                    },
+                ],
+            )],
+        };
+
+        let written = write(&document);
+
+        assert!(!written.text.contains("javascript:"));
+        let mut expected_text = String::new();
+        write_escaped(&mut expected_text, "опасная");
+        assert!(written.text.contains(&expected_text));
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("небезопасн")));
+        assert!(written.text.contains("HYPERLINK \"https://example.com\""));
+    }
+
+    #[test]
+    fn writes_safe_links_without_warnings() {
+        let safe_links = [
+            "http://example.com",
+            "https://example.com",
+            "mailto:user@example.com",
+            "asset:image-1",
+            "tel:+123456",
+            "image.png",
+        ];
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode::with_content(
+                "paragraph",
+                safe_links
+                    .iter()
+                    .map(|href| PmNode {
+                        marks: vec![link_mark(href)],
+                        ..PmNode::text("ссылка")
+                    })
+                    .collect(),
+            )],
+        };
+
+        let written = write(&document);
+
+        for href in safe_links {
+            assert!(
+                written.text.contains(&format!("HYPERLINK \"{href}\"")),
+                "{href}: {}",
+                written.text
+            );
+        }
+
+        assert!(written
+            .warnings
+            .iter()
+            .all(|warning| !warning.contains("небезопасн")));
     }
 }

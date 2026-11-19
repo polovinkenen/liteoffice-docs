@@ -8,7 +8,7 @@ description = "Общие типы конвертеров документов W
 
 [dependencies]
 thiserror.workspace = true
-wlite-docmodel = { path = "../docmodel" }
+wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
 
 [dev-dependencies]
 serde_json.workspace = true

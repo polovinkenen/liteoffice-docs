@@ -378,3 +378,105 @@ fn renders_header_footer_tokens() {
     assert!(normalized.contains("стр. 1"), "{normalized}");
     assert!(normalized.contains("1 из 1"), "{normalized}");
 }
+
+fn link_uris(pdf: &lopdf::Document) -> Vec<String> {
+    let mut uris = Vec::new();
+
+    for object in pdf.objects.values() {
+        let Ok(dict) = object.as_dict() else {
+            continue;
+        };
+        let Ok(action) = dict.get(b"A") else {
+            continue;
+        };
+        let action = match action {
+            lopdf::Object::Reference(id) => match pdf.get_object(*id) {
+                Ok(object) => object,
+                Err(_) => continue,
+            },
+            other => other,
+        };
+        let Ok(action) = action.as_dict() else {
+            continue;
+        };
+        let Ok(uri) = action.get(b"URI") else {
+            continue;
+        };
+
+        if let Ok(uri) = uri.as_str() {
+            uris.push(String::from_utf8_lossy(uri).into_owned());
+        }
+    }
+
+    uris
+}
+
+#[test]
+fn skips_unsafe_links_in_pdf() {
+    let safe_links = [
+        "https://example.com",
+        "http://example.com/path",
+        "mailto:user@example.com",
+        "tel:+123456",
+        "asset:image-1",
+        "./relative.html",
+        "data:image/png;base64,AAAA",
+    ];
+    let unsafe_links = [
+        "javascript&colon;alert(1)",
+        "javascript:alert(1)",
+        "file:///etc/passwd",
+        "data:text/html;base64,AAAA",
+    ];
+    let mut content = Vec::new();
+
+    for (index, href) in safe_links.iter().chain(unsafe_links.iter()).enumerate() {
+        content.push(json!({
+            "type": "paragraph",
+            "content": [{
+                "type": "text",
+                "text": format!("Ссылка {index}"),
+                "marks": [{ "type": "link", "attrs": { "href": href } }]
+            }]
+        }));
+    }
+
+    let document: PmDoc =
+        serde_json::from_value(json!({ "type": "doc", "content": content })).expect("документ");
+    let output = render(&document, &PdfOptions::default(), Some("Ссылки")).expect("рендер");
+    let pdf = lopdf::Document::load_mem(&output.bytes).expect("PDF читается lopdf");
+    let uris = link_uris(&pdf);
+
+    for href in safe_links {
+        assert!(
+            uris.iter().any(|uri| uri == href),
+            "ссылка «{href}» не попала в PDF: {uris:?}"
+        );
+    }
+
+    for href in unsafe_links {
+        assert!(
+            !uris.iter().any(|uri| uri == href),
+            "небезопасная ссылка «{href}» попала в PDF: {uris:?}"
+        );
+    }
+
+    assert!(
+        !uris.iter().any(|uri| uri.contains("javascript")),
+        "в PDF есть javascript-ссылка: {uris:?}"
+    );
+    assert!(
+        !uris.iter().any(|uri| uri.starts_with("file:")),
+        "в PDF есть file-ссылка: {uris:?}"
+    );
+    assert!(
+        !uris.iter().any(|uri| uri.starts_with("data:text/html")),
+        "в PDF есть небезопасный data-URL: {uris:?}"
+    );
+
+    let warnings = output.warnings.join("\n");
+    assert!(
+        warnings.contains("javascript&colon;alert(1)"),
+        "нет предупреждения о небезопасной ссылке: {warnings}"
+    );
+}

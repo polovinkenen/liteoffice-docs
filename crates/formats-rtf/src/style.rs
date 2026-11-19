@@ -215,16 +215,6 @@ pub fn rtf_font_name(font_family: &str) -> String {
     first.trim_matches('"').trim().to_owned()
 }
 
-pub fn is_safe_link(url: &str) -> bool {
-    let lowered = url.trim().to_ascii_lowercase();
-
-    !lowered.is_empty()
-        && !lowered.starts_with("javascript:")
-        && !lowered.starts_with("vbscript:")
-        && !lowered.starts_with("data:text/html")
-        && !lowered.chars().any(char::is_control)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

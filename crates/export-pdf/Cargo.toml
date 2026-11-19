@@ -13,10 +13,11 @@ serde_json.workspace = true
 thiserror.workspace = true
 typst.workspace = true
 typst-pdf.workspace = true
-wlite-docmodel = { path = "../docmodel" }
+wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+wlite-formats-core = { version = "0.1.0", path = "../formats-core" }
 
 [dev-dependencies]
-lopdf = "0.38"
+lopdf = "0.42"
 pdf-extract = "0.12"
 serde_json.workspace = true
 tempfile.workspace = true

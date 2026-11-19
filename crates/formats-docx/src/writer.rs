@@ -11,7 +11,7 @@ use docx_rs::{
     VMergeType,
 };
 use wlite_docmodel::{PmDoc, PmNode};
-use wlite_formats_core::{FormatError, WarningSink, WrittenFile};
+use wlite_formats_core::{is_safe_link, FormatError, WarningSink, WrittenFile};
 
 use crate::units::{
     docx_font_name, font_size_half_points, hex_color, line_height_twips, parse_color,
@@ -692,16 +692,6 @@ fn link_href(node: &PmNode) -> Option<&str> {
         .and_then(|attrs| attrs.get("href"))
         .and_then(|href| href.as_str())
         .filter(|href| !href.is_empty())
-}
-
-fn is_safe_link(url: &str) -> bool {
-    let lowered = url.trim().to_ascii_lowercase();
-
-    !lowered.is_empty()
-        && !lowered.starts_with("javascript:")
-        && !lowered.starts_with("vbscript:")
-        && !lowered.starts_with("data:text/html")
-        && !lowered.chars().any(char::is_control)
 }
 
 fn is_list(node: &PmNode) -> bool {

@@ -10,5 +10,5 @@ description = "Импорт и экспорт RTF для WLite"
 base64.workspace = true
 encoding_rs = "0.8"
 serde_json.workspace = true
-wlite-docmodel = { path = "../docmodel" }
-wlite-formats-core = { path = "../formats-core" }
+wlite-docmodel = { version = "0.1.0", path = "../docmodel" }
+wlite-formats-core = { version = "0.1.0", path = "../formats-core" }

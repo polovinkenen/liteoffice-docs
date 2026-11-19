@@ -1,0 +1,53 @@
+[package]
+name = "wlite-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.wlite-formats]
+path = "../crates/formats"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "markdown_import"
+path = "fuzz_targets/markdown_import.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "html_import"
+path = "fuzz_targets/html_import.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rtf_import"
+path = "fuzz_targets/rtf_import.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "txt_import"
+path = "fuzz_targets/txt_import.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "docx_import"
+path = "fuzz_targets/docx_import.rs"
+test = false
+doc = false
+bench = false

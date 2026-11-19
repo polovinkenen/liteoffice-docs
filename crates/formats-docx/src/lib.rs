@@ -2,7 +2,7 @@ mod read;
 mod units;
 mod writer;
 
-use std::io::Cursor;
+use std::io::{Cursor, Read};
 
 use wlite_docmodel::PmDoc;
 use wlite_formats_core::{
@@ -12,7 +12,27 @@ use wlite_formats_core::{
 const MAX_ENTRIES: usize = 10_000;
 const MAX_UNCOMPRESSED_BYTES: u64 = 200 * 1024 * 1024;
 const MAX_ENTRY_BYTES: u64 = 100 * 1024 * 1024;
-const MAX_COMPRESSION_RATIO: u64 = 200;
+const MAX_COMPRESSION_RATIO: u64 = 1000;
+const MIN_RATIO_CHECK_BYTES: u64 = 1024 * 1024;
+
+#[derive(Clone, Copy)]
+struct ArchiveLimits {
+    max_entries: usize,
+    max_uncompressed_bytes: u64,
+    max_entry_bytes: u64,
+    max_compression_ratio: u64,
+}
+
+impl Default for ArchiveLimits {
+    fn default() -> Self {
+        Self {
+            max_entries: MAX_ENTRIES,
+            max_uncompressed_bytes: MAX_UNCOMPRESSED_BYTES,
+            max_entry_bytes: MAX_ENTRY_BYTES,
+            max_compression_ratio: MAX_COMPRESSION_RATIO,
+        }
+    }
+}
 
 pub struct DocxCodec;
 
@@ -46,39 +66,83 @@ impl DocumentCodec for DocxCodec {
 }
 
 fn validate_archive(bytes: &[u8]) -> Result<(), FormatError> {
+    validate_archive_with_limits(bytes, ArchiveLimits::default())
+}
+
+fn validate_archive_with_limits(bytes: &[u8], limits: ArchiveLimits) -> Result<(), FormatError> {
     let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| FormatError::Parse(format!("некорректный DOCX-архив: {error}")))?;
 
-    if archive.len() > MAX_ENTRIES {
+    if archive.len() > limits.max_entries {
         return Err(FormatError::Parse(
             "DOCX содержит слишком много файлов".to_owned(),
         ));
     }
 
-    let mut total = 0u64;
+    let mut declared_total = 0u64;
+    let mut actual_total = 0u64;
 
     for index in 0..archive.len() {
-        let entry = archive
-            .by_index_raw(index)
-            .map_err(|error| FormatError::Parse(format!("некорректный DOCX-архив: {error}")))?;
-        let size = entry.size();
-        let compressed = entry.compressed_size().max(1);
+        // Заголовки архива недоверенные: сначала быстрые проверки по заявленным
+        // размерам, чтобы отсечь заведомо огромные записи без распаковки.
+        let (declared, compressed) = {
+            let entry = archive
+                .by_index_raw(index)
+                .map_err(|error| FormatError::Parse(format!("некорректный DOCX-архив: {error}")))?;
+            let declared = entry.size();
+            let compressed = entry.compressed_size().max(1);
 
-        if size > MAX_ENTRY_BYTES {
+            if declared > limits.max_entry_bytes {
+                return Err(FormatError::Parse(
+                    "файл внутри DOCX слишком большой".to_owned(),
+                ));
+            }
+
+            declared_total = declared_total.saturating_add(declared);
+
+            if declared_total > limits.max_uncompressed_bytes {
+                return Err(FormatError::Parse(
+                    "распакованный DOCX слишком большой".to_owned(),
+                ));
+            }
+
+            (declared, compressed)
+        };
+
+        // Затем реально распаковываем запись с жёстким лимитом, не аллоцируя её
+        // целиком: читаем не больше `max_entry_bytes + 1` байт в `sink`.
+        let mut entry = archive.by_index(index).map_err(|error| {
+            FormatError::Parse(format!("не удалось распаковать файл внутри DOCX: {error}"))
+        })?;
+        let limit = limits.max_entry_bytes.saturating_add(1);
+        let actual = std::io::copy(&mut (&mut entry).take(limit), &mut std::io::sink()).map_err(
+            |error| FormatError::Parse(format!("не удалось распаковать файл внутри DOCX: {error}")),
+        )?;
+
+        if actual > limits.max_entry_bytes {
             return Err(FormatError::Parse(
                 "файл внутри DOCX слишком большой".to_owned(),
             ));
         }
 
-        total = total.saturating_add(size);
+        // Расхождение фактического размера с заголовком означает подделку или
+        // повреждение: второй проход docx-rs аллоцирует буфер по заявленному
+        // размеру, поэтому такому архиву доверять нельзя.
+        if actual != declared {
+            return Err(FormatError::Parse(
+                "размер файла в DOCX не совпадает с заголовком архива".to_owned(),
+            ));
+        }
 
-        if total > MAX_UNCOMPRESSED_BYTES {
+        actual_total = actual_total.saturating_add(actual);
+
+        if actual_total > limits.max_uncompressed_bytes {
             return Err(FormatError::Parse(
                 "распакованный DOCX слишком большой".to_owned(),
             ));
         }
 
-        if size / compressed > MAX_COMPRESSION_RATIO {
+        if actual >= MIN_RATIO_CHECK_BYTES && actual / compressed > limits.max_compression_ratio {
             return Err(FormatError::Parse(
                 "DOCX похож на zip-bomb: слишком высокая степень сжатия".to_owned(),
             ));
@@ -142,6 +206,173 @@ mod tests {
         let error = codec().read_bytes(&bytes).expect_err("ожидалась ошибка");
 
         assert!(error.to_string().contains("много файлов"));
+    }
+
+    const ZIP_LOCAL_HEADER: u32 = 0x0403_4b50;
+    const ZIP_CENTRAL_HEADER: u32 = 0x0201_4b50;
+    const LOCAL_UNCOMPRESSED_SIZE_OFFSET: usize = 22;
+    const CENTRAL_UNCOMPRESSED_SIZE_OFFSET: usize = 24;
+
+    /// Подменяет заявленный несжатый размер записи в local и central header.
+    fn forge_declared_uncompressed_size(bytes: &mut [u8], declared: u32) {
+        let mut offset = 0;
+
+        while offset + 4 <= bytes.len() {
+            let signature =
+                u32::from_le_bytes(bytes[offset..offset + 4].try_into().expect("4 байта"));
+            let size_offset = match signature {
+                ZIP_LOCAL_HEADER => Some(offset + LOCAL_UNCOMPRESSED_SIZE_OFFSET),
+                ZIP_CENTRAL_HEADER => Some(offset + CENTRAL_UNCOMPRESSED_SIZE_OFFSET),
+                _ => None,
+            };
+
+            if let Some(size_offset) = size_offset {
+                if size_offset + 4 <= bytes.len() {
+                    bytes[size_offset..size_offset + 4].copy_from_slice(&declared.to_le_bytes());
+                }
+            }
+
+            offset += 1;
+        }
+    }
+
+    fn archive_with_entries(entries: &[(&str, &[u8])]) -> Vec<u8> {
+        let mut buffer = Cursor::new(Vec::new());
+        let mut writer = zip::ZipWriter::new(&mut buffer);
+
+        for (name, data) in entries {
+            writer
+                .start_file(
+                    *name,
+                    zip::write::SimpleFileOptions::default()
+                        .compression_method(zip::CompressionMethod::Deflated),
+                )
+                .expect("файл");
+            std::io::Write::write_all(&mut writer, data).expect("запись");
+        }
+
+        writer.finish().expect("архив");
+        buffer.into_inner()
+    }
+
+    #[test]
+    fn rejects_too_large_archive_entry() {
+        let limits = ArchiveLimits {
+            max_entry_bytes: 4,
+            ..ArchiveLimits::default()
+        };
+        let bytes = archive_with_entries(&[("file.txt", b"12345")]);
+
+        let error = validate_archive_with_limits(&bytes, limits).expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("слишком большой"));
+    }
+
+    #[test]
+    fn rejects_archive_with_too_large_total_size() {
+        let limits = ArchiveLimits {
+            max_uncompressed_bytes: 10,
+            ..ArchiveLimits::default()
+        };
+        let bytes = archive_with_entries(&[("a.txt", b"123456"), ("b.txt", b"123456")]);
+
+        let error = validate_archive_with_limits(&bytes, limits).expect_err("ожидалась ошибка");
+
+        assert!(error
+            .to_string()
+            .contains("распакованный DOCX слишком большой"));
+    }
+
+    #[test]
+    fn rejects_archive_with_high_compression_ratio() {
+        let limits = ArchiveLimits {
+            max_compression_ratio: 2,
+            ..ArchiveLimits::default()
+        };
+        let data = vec![0u8; 2 * 1024 * 1024];
+        let bytes = archive_with_entries(&[("zeros.txt", &data)]);
+
+        let error = validate_archive_with_limits(&bytes, limits).expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("zip-bomb"));
+    }
+
+    fn repack_with_deflate(bytes: &[u8]) -> Vec<u8> {
+        let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).expect("архив");
+        let mut buffer = Cursor::new(Vec::new());
+        let mut writer = zip::ZipWriter::new(&mut buffer);
+
+        for index in 0..archive.len() {
+            let mut entry = archive.by_index(index).expect("запись");
+            let name = entry.name().to_owned();
+            let options = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Deflated);
+
+            if entry.is_dir() {
+                writer.add_directory(name, options).expect("каталог");
+                continue;
+            }
+
+            writer.start_file(name, options).expect("файл");
+            std::io::copy(&mut entry, &mut writer).expect("копия");
+        }
+
+        writer.finish().expect("архив");
+        buffer.into_inner()
+    }
+
+    #[test]
+    fn accepts_deflated_docx_with_high_compression_ratio() {
+        // Текст длиннее 1 MiB, чтобы ветка проверки ratio действительно исполнялась.
+        // Повторяющийся, но неоднородный шаблон держит степень сжатия заметно ниже 1000.
+        let text = "abcdefghijklmnopqrstuvwxyz0123456789".repeat(50_000);
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![PmNode::with_content("paragraph", vec![PmNode::text(text)])],
+        };
+        let written = writer::write_document(&document).expect("запись DOCX");
+        let repacked = repack_with_deflate(&written.bytes);
+        let imported = codec().read_bytes(&repacked).expect("чтение DOCX");
+
+        assert_eq!(imported.document, document);
+    }
+
+    #[test]
+    fn rejects_forged_uncompressed_size_header() {
+        // 2 МиБ нулей сжимаются в несколько килобайт, но заголовок заявляет 1000
+        // байт — именно такая подделка раньше обходила лимиты и позволяла
+        // docx-rs аллоцировать буфер по фактическому размеру.
+        let data = vec![0u8; 2 * 1024 * 1024];
+        let mut bytes = archive_with_entries(&[("zeros.txt", &data)]);
+        forge_declared_uncompressed_size(&mut bytes, 1000);
+
+        let error = codec()
+            .read_bytes(&bytes)
+            .expect_err("подделанный архив должен отклоняться");
+
+        assert!(matches!(&error, FormatError::Parse(_)));
+        assert!(
+            error.to_string().contains("не совпадает"),
+            "неожиданная ошибка: {error}"
+        );
+    }
+
+    #[test]
+    fn rejects_documents_over_node_limit() {
+        let bytes = std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../tests/fixtures/docx/basic.docx"),
+        )
+        .expect("фикстура");
+        let limits = read::ReadLimits {
+            max_nodes: 1,
+            max_depth: wlite_docmodel::MAX_DEPTH,
+        };
+
+        let error = read::read_document_with_limits(&bytes, limits).expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("узлов"));
     }
 }
 

@@ -4,15 +4,16 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use serde_json::{json, Map, Value};
 use wlite_docmodel::{PmDoc, PmMark, PmNode};
-use wlite_formats_core::{FormatError, ImportedDocument, WarningSink};
+use wlite_formats_core::{is_safe_link, FormatError, ImportedDocument, WarningSink};
 
 use crate::lexer::{tokenize, Token};
 use crate::style::{
-    canonical_font_family, decode_in_code_page, font_size_points, format_color, is_safe_link,
+    canonical_font_family, decode_in_code_page, font_size_points, format_color,
     line_height_from_twips, DEFAULT_FONT_NAME, DEFAULT_FONT_SIZE_HALF_POINTS, LI_TWIPS_PER_LEVEL,
 };
 
 const MAX_GROUP_DEPTH: usize = 512;
+const MAX_NODES: usize = 1_000_000;
 const MAX_IMAGE_BYTES: usize = 15 * 1024 * 1024;
 
 const SKIPPED_DESTINATIONS: &[&str] = &[
@@ -52,8 +53,12 @@ const SKIPPED_DESTINATIONS: &[&str] = &[
 ];
 
 pub fn parse(source: &str) -> Result<ImportedDocument, FormatError> {
+    parse_with_limit(source, MAX_NODES)
+}
+
+fn parse_with_limit(source: &str, max_nodes: usize) -> Result<ImportedDocument, FormatError> {
     let tokens = tokenize(source).map_err(FormatError::Parse)?;
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, max_nodes);
 
     parser.run()?;
     parser.finish()
@@ -252,10 +257,11 @@ struct Parser<'a> {
     override_list_id: Option<u16>,
     color_acc: (Option<u8>, Option<u8>, Option<u8>),
     nodes: usize,
+    max_nodes: usize,
 }
 
 impl<'a> Parser<'a> {
-    fn new(tokens: Vec<Token<'a>>) -> Self {
+    fn new(tokens: Vec<Token<'a>>, max_nodes: usize) -> Self {
         Self {
             tokens,
             position: 0,
@@ -277,7 +283,21 @@ impl<'a> Parser<'a> {
             override_list_id: None,
             color_acc: (None, None, None),
             nodes: 0,
+            max_nodes,
         }
+    }
+
+    fn count_node(&mut self) -> Result<(), FormatError> {
+        self.nodes += 1;
+
+        if self.nodes > self.max_nodes {
+            return Err(FormatError::Parse(format!(
+                "превышено максимальное число узлов RTF {}",
+                self.max_nodes
+            )));
+        }
+
+        Ok(())
     }
 
     fn run(&mut self) -> Result<(), FormatError> {
@@ -366,7 +386,18 @@ impl<'a> Parser<'a> {
                 }
             }
             Destination::FieldInstruction => {
-                let link = parse_field_link(&popped.field_text).or(popped.field_link);
+                let parsed = parse_field_link(&popped.field_text);
+
+                if matches!(parsed, FieldLink::Unsafe) {
+                    self.warnings
+                        .warn("Ссылка с небезопасным адресом была преобразована в текст.");
+                }
+
+                let link = match parsed {
+                    FieldLink::Safe(link) => Some(link),
+                    FieldLink::Unsafe | FieldLink::Missing => None,
+                }
+                .or(popped.field_link);
 
                 if let Some(link) = link {
                     if let Some(frame) = self.frames.last_mut() {
@@ -535,7 +566,7 @@ impl<'a> Parser<'a> {
             }
             "par" => {
                 self.flush_bytes();
-                self.finish_paragraph(true);
+                self.finish_paragraph(true)?;
             }
             "line" => {
                 self.flush_bytes();
@@ -544,7 +575,7 @@ impl<'a> Parser<'a> {
             "page" => {
                 self.flush_bytes();
                 if !self.paragraph.items.is_empty() {
-                    self.finish_paragraph(false);
+                    self.finish_paragraph(false)?;
                 }
                 self.flush_table();
                 self.blocks.push(Block::Atom(atom("pageBreak")));
@@ -563,8 +594,8 @@ impl<'a> Parser<'a> {
                     row.header = true;
                 }
             }
-            "cell" => self.finish_cell(),
-            "row" => self.finish_row(),
+            "cell" => self.finish_cell()?,
+            "row" => self.finish_row()?,
             "brdrb" => self.with_paragraph_style(|style| style.bottom_border = true),
             "brdrnone" => self.with_paragraph_style(|style| style.bottom_border = false),
             "header" | "footer" | "footnote" | "endnote" | "annotation" | "object" | "shppict" => {
@@ -719,7 +750,8 @@ impl<'a> Parser<'a> {
 
         self.flush_bytes();
         let style = self.current_char_style();
-        self.push_text(&character.to_string(), &style);
+        let mut buffer = [0u8; 4];
+        self.push_text(character.encode_utf8(&mut buffer), &style);
 
         if let Some(frame) = self.frames.last_mut() {
             frame.skip = frame.uc;
@@ -1053,19 +1085,18 @@ impl<'a> Parser<'a> {
         });
     }
 
-    fn finish_cell(&mut self) {
+    fn finish_cell(&mut self) -> Result<(), FormatError> {
         self.flush_bytes();
-        self.finish_paragraph(false);
+        self.finish_paragraph(false)?;
 
         if self.current_cell.is_empty() {
             self.current_cell.push(PmNode::paragraph());
         }
 
-        let Some(row) = self.row.as_mut() else {
+        let Some(header) = self.row.as_ref().map(|row| row.header) else {
             self.current_cell.clear();
-            return;
+            return Ok(());
         };
-        let header = row.header;
         let mut cell = PmNode::with_content(
             if header { "tableHeader" } else { "tableCell" },
             std::mem::take(&mut self.current_cell),
@@ -1075,24 +1106,31 @@ impl<'a> Parser<'a> {
             "rowspan": 1,
             "colwidth": null
         }));
-        row.cells.push(cell);
+        self.count_node()?;
+        if let Some(row) = self.row.as_mut() {
+            row.cells.push(cell);
+        }
+        Ok(())
     }
 
-    fn finish_row(&mut self) {
+    fn finish_row(&mut self) -> Result<(), FormatError> {
         self.flush_bytes();
 
         if !self.current_cell.is_empty() {
-            self.finish_cell();
+            self.finish_cell()?;
         }
 
         let Some(row) = self.row.take() else {
-            return;
+            return Ok(());
         };
 
         if !row.cells.is_empty() {
+            self.count_node()?;
             self.table_rows
                 .push(PmNode::with_content("tableRow", row.cells));
         }
+
+        Ok(())
     }
 
     fn flush_table(&mut self) {
@@ -1104,18 +1142,18 @@ impl<'a> Parser<'a> {
             .push(Block::Table(std::mem::take(&mut self.table_rows)));
     }
 
-    fn finish_paragraph(&mut self, force: bool) {
+    fn finish_paragraph(&mut self, force: bool) -> Result<(), FormatError> {
         let has_items = !self.paragraph.items.is_empty();
         let style = self.current_paragraph_style();
 
         if !force && !has_items && !style.bottom_border {
-            return;
+            return Ok(());
         }
 
         let mut items = std::mem::take(&mut self.paragraph.items);
         trim_items(&mut items);
         let list = self.list_meta(&mut items, &style);
-        let content = self.inline_nodes(items);
+        let content = self.inline_nodes(items)?;
         let attrs = paragraph_attrs(&style, list.is_some());
         let heading = style.heading.or_else(|| {
             style
@@ -1125,8 +1163,9 @@ impl<'a> Parser<'a> {
 
         if style.bottom_border && content.is_empty() && !style.in_table {
             self.flush_table();
+            self.count_node()?;
             self.blocks.push(Block::Atom(atom("horizontalRule")));
-            return;
+            return Ok(());
         }
 
         let node = if let Some(level) = heading {
@@ -1139,13 +1178,17 @@ impl<'a> Parser<'a> {
             node
         };
 
+        self.count_node()?;
+
         if style.in_table {
             self.current_cell.push(node);
-            return;
+            return Ok(());
         }
 
         self.flush_table();
         self.blocks.push(Block::Paragraph { node, list });
+
+        Ok(())
     }
 
     fn list_meta(&self, items: &mut [InlineItem], style: &ParaStyle) -> Option<ListMeta> {
@@ -1197,7 +1240,7 @@ impl<'a> Parser<'a> {
             .copied()
     }
 
-    fn inline_nodes(&mut self, items: Vec<InlineItem>) -> Vec<PmNode> {
+    fn inline_nodes(&mut self, items: Vec<InlineItem>) -> Result<Vec<PmNode>, FormatError> {
         let mut content = Vec::new();
 
         for item in items {
@@ -1222,7 +1265,7 @@ impl<'a> Parser<'a> {
                         }
                     }
 
-                    self.nodes += 1;
+                    self.count_node()?;
                     content.push(PmNode {
                         node_type: "text".to_owned(),
                         attrs: None,
@@ -1232,20 +1275,20 @@ impl<'a> Parser<'a> {
                     });
                 }
                 InlineItem::Image(image) => {
-                    self.nodes += 1;
+                    self.count_node()?;
                     content.push(image);
                 }
                 InlineItem::HardBreak => {
-                    self.nodes += 1;
+                    self.count_node()?;
                     content.push(atom("hardBreak"));
                 }
             }
         }
 
-        content
+        Ok(content)
     }
 
-    fn marks_for(&self, style: &CharStyle) -> Vec<PmMark> {
+    fn marks_for(&mut self, style: &CharStyle) -> Vec<PmMark> {
         let mut marks = Vec::new();
 
         if style.bold {
@@ -1301,15 +1344,20 @@ impl<'a> Parser<'a> {
             marks.push(mark);
         }
 
-        if let Some(link) = style.link.as_deref().filter(|link| is_safe_link(link)) {
-            let mut mark = PmMark::new("link");
-            mark.attrs = Some(json!({
-                "href": link,
-                "target": Value::Null,
-                "rel": Value::Null,
-                "class": Value::Null
-            }));
-            marks.push(mark);
+        if let Some(link) = style.link.as_deref() {
+            if is_safe_link(link) {
+                let mut mark = PmMark::new("link");
+                mark.attrs = Some(json!({
+                    "href": link,
+                    "target": Value::Null,
+                    "rel": Value::Null,
+                    "class": Value::Null
+                }));
+                marks.push(mark);
+            } else {
+                self.warnings
+                    .warn("Ссылка с небезопасным адресом была преобразована в текст.");
+            }
         }
 
         marks
@@ -1334,7 +1382,7 @@ impl<'a> Parser<'a> {
     fn finish(mut self) -> Result<ImportedDocument, FormatError> {
         self.flush_bytes();
         if !self.paragraph.items.is_empty() {
-            self.finish_paragraph(false);
+            self.finish_paragraph(false)?;
         }
         self.flush_table();
 
@@ -1662,18 +1710,26 @@ fn same_family(left: &ListKind, right: &ListKind) -> bool {
     )
 }
 
-fn parse_field_link(text: &str) -> Option<String> {
+enum FieldLink {
+    Missing,
+    Safe(String),
+    Unsafe,
+}
+
+fn parse_field_link(text: &str) -> FieldLink {
     let trimmed = text.trim();
-    let prefix = trimmed.get(..9)?;
+    let Some(prefix) = trimmed.get(..9) else {
+        return FieldLink::Missing;
+    };
 
     if !prefix.eq_ignore_ascii_case("HYPERLINK") {
-        return None;
+        return FieldLink::Missing;
     }
 
     let rest = trimmed[9..].trim();
 
     if rest.is_empty() {
-        return None;
+        return FieldLink::Missing;
     }
 
     let link = if let Some(rest) = rest.strip_prefix('"') {
@@ -1683,9 +1739,9 @@ fn parse_field_link(text: &str) -> Option<String> {
     };
 
     if is_safe_link(link) {
-        Some(link.to_owned())
+        FieldLink::Safe(link.to_owned())
     } else {
-        None
+        FieldLink::Unsafe
     }
 }
 
@@ -1705,4 +1761,36 @@ fn decode_hex(hex: &str) -> Vec<u8> {
 
 fn atom(node_type: &str) -> PmNode {
     PmNode::with_content(node_type, Vec::new())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wlite_formats_core::node_text;
+
+    #[test]
+    fn rejects_documents_over_node_limit() {
+        let error = parse_with_limit(r"{\rtf1\ansi\pard один\par два\par три\par}", 2)
+            .expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("узлов"));
+    }
+
+    #[test]
+    fn warns_when_unsafe_hyperlink_is_dropped() {
+        let imported = parse(
+            r#"{\rtf1\ansi\pard {\field{\*\fldinst{HYPERLINK "javascript&colon;alert(1)"}}{\fldrslt текст}}\par}"#,
+        )
+        .expect("чтение RTF");
+
+        assert!(imported
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("небезопасным адресом")));
+        assert_eq!(node_text(&imported.document.content[0]), "текст");
+        assert!(imported.document.content[0]
+            .content
+            .iter()
+            .all(|node| node.marks.iter().all(|mark| mark.mark_type != "link")));
+    }
 }

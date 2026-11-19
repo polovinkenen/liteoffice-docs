@@ -3,9 +3,58 @@ use comrak::{parse_document, Arena, Options};
 use serde_json::json;
 use wlite_docmodel::{PmDoc, PmMark, PmNode};
 use wlite_formats_core::{
-    image_alt, node_text, DocumentCodec, FormatError, ImportedDocument, WarningSink,
+    image_alt, is_safe_link, node_text, DocumentCodec, FormatError, ImportedDocument, WarningSink,
     WrittenDocument,
 };
+
+// Память на разбор ограничена сверху размером входа: app-core::files не читает больше 50 MiB.
+const MAX_DEPTH: usize = 256;
+const MAX_NODES: usize = 1_000_000;
+
+struct Limits {
+    max_nodes: usize,
+    max_depth: usize,
+}
+
+impl Limits {
+    const fn defaults() -> Self {
+        Self {
+            max_nodes: MAX_NODES,
+            max_depth: MAX_DEPTH,
+        }
+    }
+}
+
+struct Budget {
+    nodes: usize,
+    limits: Limits,
+}
+
+impl Budget {
+    fn new(limits: Limits) -> Self {
+        Self { nodes: 0, limits }
+    }
+
+    fn enter(&mut self, depth: usize) -> Result<(), FormatError> {
+        if depth > self.limits.max_depth {
+            return Err(FormatError::Parse(format!(
+                "превышена максимальная глубина вложенности Markdown {}",
+                self.limits.max_depth
+            )));
+        }
+
+        self.nodes += 1;
+
+        if self.nodes > self.limits.max_nodes {
+            return Err(FormatError::Parse(format!(
+                "превышено максимальное число узлов Markdown {}",
+                self.limits.max_nodes
+            )));
+        }
+
+        Ok(())
+    }
+}
 
 pub struct MarkdownCodec;
 
@@ -17,23 +66,7 @@ pub fn codec() -> &'static dyn DocumentCodec {
 
 impl DocumentCodec for MarkdownCodec {
     fn read(&self, source: &str) -> Result<ImportedDocument, FormatError> {
-        let arena = Arena::new();
-        let root = parse_document(&arena, source, &options());
-        let mut warnings = WarningSink::new();
-        let mut content = convert_blocks(root, &mut warnings);
-
-        if content.is_empty() {
-            content.push(PmNode::paragraph());
-        }
-
-        Ok(ImportedDocument {
-            document: PmDoc {
-                node_type: "doc".to_owned(),
-                attrs: None,
-                content,
-            },
-            warnings: warnings.into_warnings(),
-        })
+        read_with_limits(source, Limits::defaults())
     }
 
     fn write(&self, document: &PmDoc) -> Result<WrittenDocument, FormatError> {
@@ -57,6 +90,27 @@ impl DocumentCodec for MarkdownCodec {
     }
 }
 
+fn read_with_limits(source: &str, limits: Limits) -> Result<ImportedDocument, FormatError> {
+    let arena = Arena::new();
+    let root = parse_document(&arena, source, &options());
+    let mut warnings = WarningSink::new();
+    let mut budget = Budget::new(limits);
+    let mut content = convert_blocks(root, 1, &mut budget, &mut warnings)?;
+
+    if content.is_empty() {
+        content.push(PmNode::paragraph());
+    }
+
+    Ok(ImportedDocument {
+        document: PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content,
+        },
+        warnings: warnings.into_warnings(),
+    })
+}
+
 fn options() -> Options<'static> {
     let mut options = Options::default();
     options.extension.table = true;
@@ -66,26 +120,42 @@ fn options() -> Options<'static> {
     options
 }
 
-fn convert_blocks<'a>(parent: &'a AstNode<'a>, warnings: &mut WarningSink) -> Vec<PmNode> {
-    parent
-        .children()
-        .flat_map(|child| convert_block(child, warnings))
-        .collect()
+fn convert_blocks<'a>(
+    parent: &'a AstNode<'a>,
+    depth: usize,
+    budget: &mut Budget,
+    warnings: &mut WarningSink,
+) -> Result<Vec<PmNode>, FormatError> {
+    let mut blocks = Vec::new();
+
+    for child in parent.children() {
+        blocks.extend(convert_block(child, depth, budget, warnings)?);
+    }
+
+    Ok(blocks)
 }
 
-fn convert_block<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> Vec<PmNode> {
+fn convert_block<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    budget: &mut Budget,
+    warnings: &mut WarningSink,
+) -> Result<Vec<PmNode>, FormatError> {
+    budget.enter(depth)?;
     let value = node.data.borrow().value.clone();
 
     match value {
-        NodeValue::Paragraph => vec![PmNode::with_content(
+        NodeValue::Paragraph => Ok(vec![PmNode::with_content(
             "paragraph",
-            convert_inline_children(node, &[], warnings),
-        )],
+            convert_inline_children(node, &[], depth + 1, budget, warnings)?,
+        )]),
         NodeValue::Heading(heading) => {
-            let mut paragraph =
-                PmNode::with_content("heading", convert_inline_children(node, &[], warnings));
+            let mut paragraph = PmNode::with_content(
+                "heading",
+                convert_inline_children(node, &[], depth + 1, budget, warnings)?,
+            );
             paragraph.attrs = Some(json!({ "level": heading.level }));
-            vec![paragraph]
+            Ok(vec![paragraph])
         }
         NodeValue::CodeBlock(code) => {
             let language = code
@@ -100,53 +170,65 @@ fn convert_block<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> Vec<P
             } else {
                 Some(json!({ "language": language }))
             };
-            vec![block]
+            Ok(vec![block])
         }
         NodeValue::BlockQuote => {
-            let mut content = convert_blocks(node, warnings);
+            let mut content = convert_blocks(node, depth + 1, budget, warnings)?;
 
             if content.is_empty() {
                 content.push(PmNode::paragraph());
             }
 
-            vec![PmNode::with_content("blockquote", content)]
+            Ok(vec![PmNode::with_content("blockquote", content)])
         }
-        NodeValue::List(list) => vec![convert_list(node, &list, warnings)],
-        NodeValue::Table(_) => vec![convert_table(node, warnings)],
-        NodeValue::ThematicBreak => vec![block_node("horizontalRule")],
+        NodeValue::List(list) => Ok(vec![convert_list(
+            node,
+            &list,
+            depth + 1,
+            budget,
+            warnings,
+        )?]),
+        NodeValue::Table(_) => Ok(vec![convert_table(node, depth + 1, budget, warnings)?]),
+        NodeValue::ThematicBreak => Ok(vec![block_node("horizontalRule")]),
         NodeValue::HtmlBlock(block) => {
             if block.literal.trim() == "<!-- pagebreak -->" {
-                vec![block_node("pageBreak")]
+                Ok(vec![block_node("pageBreak")])
             } else {
                 warnings.warn("HTML-блоки не поддерживаются и были пропущены.");
-                Vec::new()
+                Ok(Vec::new())
             }
         }
         NodeValue::FootnoteDefinition(_) => {
             warnings.warn("Сноски не поддерживаются и были пропущены.");
-            Vec::new()
+            Ok(Vec::new())
         }
-        NodeValue::TaskItem(_) => vec![convert_task_item(node, warnings)],
-        NodeValue::Document => convert_blocks(node, warnings),
+        NodeValue::TaskItem(_) => Ok(vec![convert_task_item(node, depth + 1, budget, warnings)?]),
+        NodeValue::Document => convert_blocks(node, depth + 1, budget, warnings),
         _ => {
-            let blocks = convert_blocks(node, warnings);
+            let blocks = convert_blocks(node, depth + 1, budget, warnings)?;
 
             if !blocks.is_empty() {
-                return blocks;
+                return Ok(blocks);
             }
 
-            let inline = convert_inline_children(node, &[], warnings);
+            let inline = convert_inline_children(node, &[], depth + 1, budget, warnings)?;
 
             if inline.is_empty() {
-                Vec::new()
+                Ok(Vec::new())
             } else {
-                vec![PmNode::with_content("paragraph", inline)]
+                Ok(vec![PmNode::with_content("paragraph", inline)])
             }
         }
     }
 }
 
-fn convert_list<'a>(node: &'a AstNode<'a>, list: &NodeList, warnings: &mut WarningSink) -> PmNode {
+fn convert_list<'a>(
+    node: &'a AstNode<'a>,
+    list: &NodeList,
+    depth: usize,
+    budget: &mut Budget,
+    warnings: &mut WarningSink,
+) -> Result<PmNode, FormatError> {
     let node_type = if list.is_task_list {
         "taskList"
     } else {
@@ -156,16 +238,16 @@ fn convert_list<'a>(node: &'a AstNode<'a>, list: &NodeList, warnings: &mut Warni
         }
     };
 
-    let items = node
-        .children()
-        .map(|item| {
-            if list.is_task_list {
-                convert_task_item(item, warnings)
-            } else {
-                convert_list_item(item, warnings)
-            }
-        })
-        .collect();
+    let mut items = Vec::new();
+
+    for item in node.children() {
+        let converted = if list.is_task_list {
+            convert_task_item(item, depth, budget, warnings)?
+        } else {
+            convert_list_item(item, depth, budget, warnings)?
+        };
+        items.push(converted);
+    }
 
     let mut pm_node = PmNode::with_content(node_type, items);
 
@@ -173,25 +255,37 @@ fn convert_list<'a>(node: &'a AstNode<'a>, list: &NodeList, warnings: &mut Warni
         pm_node.attrs = Some(json!({ "start": list.start }));
     }
 
-    pm_node
+    Ok(pm_node)
 }
 
-fn convert_list_item<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> PmNode {
-    let mut content = convert_blocks(node, warnings);
+fn convert_list_item<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    budget: &mut Budget,
+    warnings: &mut WarningSink,
+) -> Result<PmNode, FormatError> {
+    budget.enter(depth)?;
+    let mut content = convert_blocks(node, depth + 1, budget, warnings)?;
 
     if content.first().map(|child| child.node_type.as_str()) != Some("paragraph") {
         content.insert(0, PmNode::paragraph());
     }
 
-    PmNode::with_content("listItem", content)
+    Ok(PmNode::with_content("listItem", content))
 }
 
-fn convert_task_item<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> PmNode {
+fn convert_task_item<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    budget: &mut Budget,
+    warnings: &mut WarningSink,
+) -> Result<PmNode, FormatError> {
+    budget.enter(depth)?;
     let checked = match &node.data.borrow().value {
         NodeValue::TaskItem(item) => item.symbol.is_some(),
         _ => false,
     };
-    let mut content = convert_blocks(node, warnings);
+    let mut content = convert_blocks(node, depth + 1, budget, warnings)?;
 
     if content.first().map(|child| child.node_type.as_str()) != Some("paragraph") {
         content.insert(0, PmNode::paragraph());
@@ -200,32 +294,47 @@ fn convert_task_item<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> P
     let mut item = PmNode::with_content("taskItem", content);
     item.attrs = Some(json!({ "checked": checked }));
 
-    item
+    Ok(item)
 }
 
-fn convert_table<'a>(node: &'a AstNode<'a>, warnings: &mut WarningSink) -> PmNode {
-    let rows = node
-        .children()
-        .map(|row| {
-            let is_header = matches!(&row.data.borrow().value, NodeValue::TableRow(true));
-            let cells = row
-                .children()
-                .map(|cell| convert_table_cell(cell, is_header, warnings))
-                .collect();
+fn convert_table<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    budget: &mut Budget,
+    warnings: &mut WarningSink,
+) -> Result<PmNode, FormatError> {
+    let mut rows = Vec::new();
 
-            PmNode::with_content("tableRow", cells)
-        })
-        .collect();
+    for row in node.children() {
+        budget.enter(depth)?;
+        let is_header = matches!(&row.data.borrow().value, NodeValue::TableRow(true));
+        let mut cells = Vec::new();
 
-    PmNode::with_content("table", rows)
+        for cell in row.children() {
+            budget.enter(depth)?;
+            cells.push(convert_table_cell(
+                cell,
+                is_header,
+                depth + 1,
+                budget,
+                warnings,
+            )?);
+        }
+
+        rows.push(PmNode::with_content("tableRow", cells));
+    }
+
+    Ok(PmNode::with_content("table", rows))
 }
 
 fn convert_table_cell<'a>(
     node: &'a AstNode<'a>,
     is_header: bool,
+    depth: usize,
+    budget: &mut Budget,
     warnings: &mut WarningSink,
-) -> PmNode {
-    let inline = convert_inline_children(node, &[], warnings);
+) -> Result<PmNode, FormatError> {
+    let inline = convert_inline_children(node, &[], depth, budget, warnings)?;
     let content = if inline.is_empty() {
         vec![PmNode::paragraph()]
     } else {
@@ -241,29 +350,34 @@ fn convert_table_cell<'a>(
         content,
     );
     cell.attrs = Some(json!({ "colspan": 1, "rowspan": 1, "colwidth": null }));
-    cell
+    Ok(cell)
 }
 
 fn convert_inline_children<'a>(
     node: &'a AstNode<'a>,
     marks: &[PmMark],
+    depth: usize,
+    budget: &mut Budget,
     warnings: &mut WarningSink,
-) -> Vec<PmNode> {
+) -> Result<Vec<PmNode>, FormatError> {
     let mut output = Vec::new();
 
     for child in node.children() {
-        convert_inline(child, marks, &mut output, warnings);
+        convert_inline(child, marks, &mut output, depth, budget, warnings)?;
     }
 
-    output
+    Ok(output)
 }
 
 fn convert_inline<'a>(
     node: &'a AstNode<'a>,
     marks: &[PmMark],
     output: &mut Vec<PmNode>,
+    depth: usize,
+    budget: &mut Budget,
     warnings: &mut WarningSink,
-) {
+) -> Result<(), FormatError> {
+    budget.enter(depth)?;
     let value = node.data.borrow().value.clone();
 
     match value {
@@ -278,19 +392,30 @@ fn convert_inline<'a>(
         NodeValue::Emph => {
             let mut nested = marks.to_vec();
             nested.push(PmMark::new("italic"));
-            convert_inline_children_into(node, &nested, output, warnings);
+            convert_inline_children_into(node, &nested, output, depth + 1, budget, warnings)?;
         }
         NodeValue::Strong => {
             let mut nested = marks.to_vec();
             nested.push(PmMark::new("bold"));
-            convert_inline_children_into(node, &nested, output, warnings);
+            convert_inline_children_into(node, &nested, output, depth + 1, budget, warnings)?;
         }
         NodeValue::Strikethrough => {
             let mut nested = marks.to_vec();
             nested.push(PmMark::new("strike"));
-            convert_inline_children_into(node, &nested, output, warnings);
+            convert_inline_children_into(node, &nested, output, depth + 1, budget, warnings)?;
         }
         NodeValue::Link(link) => {
+            if link.url.trim().is_empty() {
+                convert_inline_children_into(node, marks, output, depth + 1, budget, warnings)?;
+                return Ok(());
+            }
+
+            if !is_safe_link(&link.url) {
+                warnings.warn("Ссылка с небезопасным адресом была преобразована в текст.");
+                convert_inline_children_into(node, marks, output, depth + 1, budget, warnings)?;
+                return Ok(());
+            }
+
             let mut nested = marks.to_vec();
             let mut mark = PmMark::new("link");
             mark.attrs = Some(json!({
@@ -300,10 +425,20 @@ fn convert_inline<'a>(
                 "class": null
             }));
             nested.push(mark);
-            convert_inline_children_into(node, &nested, output, warnings);
+            convert_inline_children_into(node, &nested, output, depth + 1, budget, warnings)?;
         }
         NodeValue::Image(image) => {
-            let alt = plain_text(node);
+            if image.url.trim().is_empty() {
+                warnings.warn("Изображение без адреса было пропущено.");
+                return Ok(());
+            }
+
+            if !is_safe_link(&image.url) {
+                warnings.warn("Изображение с небезопасным адресом было пропущено.");
+                return Ok(());
+            }
+
+            let alt = plain_text(node, depth + 1, budget)?;
             let mut image_node = block_node("image");
             image_node.attrs = Some(json!({
                 "src": image.url,
@@ -318,19 +453,25 @@ fn convert_inline<'a>(
         NodeValue::FootnoteReference(_) => {
             warnings.warn("Ссылки на сноски не поддерживаются и были удалены.");
         }
-        _ => convert_inline_children_into(node, marks, output, warnings),
+        _ => convert_inline_children_into(node, marks, output, depth + 1, budget, warnings)?,
     }
+
+    Ok(())
 }
 
 fn convert_inline_children_into<'a>(
     node: &'a AstNode<'a>,
     marks: &[PmMark],
     output: &mut Vec<PmNode>,
+    depth: usize,
+    budget: &mut Budget,
     warnings: &mut WarningSink,
-) {
+) -> Result<(), FormatError> {
     for child in node.children() {
-        convert_inline(child, marks, output, warnings);
+        convert_inline(child, marks, output, depth, budget, warnings)?;
     }
+
+    Ok(())
 }
 
 fn push_text(output: &mut Vec<PmNode>, text: &str, marks: &[PmMark]) {
@@ -356,20 +497,25 @@ fn push_text(output: &mut Vec<PmNode>, text: &str, marks: &[PmMark]) {
     });
 }
 
-fn plain_text<'a>(node: &'a AstNode<'a>) -> String {
+fn plain_text<'a>(
+    node: &'a AstNode<'a>,
+    depth: usize,
+    budget: &mut Budget,
+) -> Result<String, FormatError> {
     let mut text = String::new();
 
     for child in node.children() {
+        budget.enter(depth)?;
         let value = child.data.borrow().value.clone();
 
         match value {
             NodeValue::Text(value) => text.push_str(&value),
             NodeValue::SoftBreak | NodeValue::LineBreak => text.push(' '),
-            _ => text.push_str(&plain_text(child)),
+            _ => text.push_str(&plain_text(child, depth + 1, budget)?),
         }
     }
 
-    text
+    Ok(text)
 }
 
 fn block_node(node_type: &str) -> PmNode {
@@ -498,8 +644,10 @@ fn write_block(node: &PmNode, output: &mut String, indent: usize, context: &mut 
         "pageBreak" => output.push_str("<!-- pagebreak -->\n\n"),
         "horizontalRule" => output.push_str("---\n\n"),
         "image" => {
-            output.push_str(&image_markdown(node));
-            output.push_str("\n\n");
+            if let Some(markdown) = image_markdown(node, context) {
+                output.push_str(&markdown);
+                output.push_str("\n\n");
+            }
         }
         other => {
             if other != "text" && other != "hardBreak" {
@@ -542,7 +690,14 @@ fn write_inline(node: &PmNode, output: &mut String, context: &mut WriteContext) 
                             .and_then(|attrs| attrs.get("href"))
                             .and_then(|href| href.as_str())
                             .unwrap_or_default();
-                        rendered = format!("[{rendered}]({href})");
+
+                        if is_safe_link(href) {
+                            rendered = format!("[{rendered}]({href})");
+                        } else {
+                            context
+                                .warnings
+                                .warn("Ссылка с небезопасным адресом не сохраняется в Markdown.");
+                        }
                     }
                     "textStyle" => context
                         .warnings
@@ -562,7 +717,11 @@ fn write_inline(node: &PmNode, output: &mut String, context: &mut WriteContext) 
             output.push_str(&rendered);
         }
         "hardBreak" => output.push_str("  \n"),
-        "image" => output.push_str(&image_markdown(node)),
+        "image" => {
+            if let Some(markdown) = image_markdown(node, context) {
+                output.push_str(&markdown);
+            }
+        }
         _ => write_inline_children(node, output, context),
     }
 }
@@ -755,7 +914,7 @@ fn cell_markdown(cell: &PmNode, context: &mut WriteContext) -> String {
     parts.join(" ").replace('\n', " ").replace('|', "\\|")
 }
 
-fn image_markdown(node: &PmNode) -> String {
+fn image_markdown(node: &PmNode, context: &mut WriteContext) -> Option<String> {
     let source = node
         .attrs
         .as_ref()
@@ -763,7 +922,17 @@ fn image_markdown(node: &PmNode) -> String {
         .and_then(|src| src.as_str())
         .unwrap_or_default();
 
-    format!("![{}]({source})", image_alt(node))
+    if !is_safe_link(source) {
+        context
+            .warnings
+            .warn("Изображение с небезопасным адресом не сохраняется в Markdown.");
+
+        let alt = image_alt(node);
+
+        return (!alt.trim().is_empty()).then(|| escape_text(&alt));
+    }
+
+    Some(format!("![{}]({source})", image_alt(node)))
 }
 
 fn escape_text(text: &str) -> String {
@@ -1139,5 +1308,186 @@ mod tests {
             DocumentFormat::from_path(std::path::Path::new("README.markdown")),
             Some(DocumentFormat::Markdown)
         );
+    }
+
+    #[test]
+    fn rejects_documents_deeper_than_limit() {
+        let source = format!("{}текст\n", "> ".repeat(MAX_DEPTH + 44));
+        let error = codec().read(&source).expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("глубина"));
+    }
+
+    #[test]
+    fn accepts_normal_nested_documents() {
+        let source = format!("{}текст\n", "> ".repeat(10));
+        let imported = read(&source);
+
+        assert!(node_text(&imported.document.content[0]).contains("текст"));
+    }
+
+    #[test]
+    fn rejects_documents_over_node_limit() {
+        let limits = Limits {
+            max_nodes: 4,
+            max_depth: MAX_DEPTH,
+        };
+        let error = read_with_limits("один\n\nдва\n\nтри\n\nчетыре\n", limits)
+            .expect_err("ожидалась ошибка");
+
+        assert!(error.to_string().contains("узлов"));
+    }
+
+    #[test]
+    fn drops_unsafe_links_and_images() {
+        let imported = read("[опасная](javascript:alert(1))\n\n![картинка](javascript:alert(2))\n");
+
+        assert!(imported
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Ссылка")));
+        assert!(imported
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Изображение")));
+
+        let paragraph = &imported.document.content[0];
+        assert!(paragraph
+            .content
+            .iter()
+            .all(|node| node.marks.iter().all(|mark| mark.mark_type != "link")));
+        assert_eq!(node_text(paragraph), "опасная");
+        assert!(imported.document.content[1]
+            .content
+            .iter()
+            .all(|node| node.node_type != "image"));
+    }
+
+    #[test]
+    fn keeps_empty_links_as_text_without_warning() {
+        for source in ["[x]()\n", "[x](<>)\n", "[x]( )\n"] {
+            let imported = read(source);
+
+            assert!(
+                imported.warnings.is_empty(),
+                "{source}: {:?}",
+                imported.warnings
+            );
+            assert_eq!(node_text(&imported.document.content[0]), "x");
+            assert!(imported.document.content[0]
+                .content
+                .iter()
+                .all(|node| node.marks.iter().all(|mark| mark.mark_type != "link")));
+        }
+    }
+
+    #[test]
+    fn warns_about_images_without_address() {
+        let imported = read("![картинка]()\n");
+
+        assert!(imported
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("без адреса")));
+        assert!(imported
+            .warnings
+            .iter()
+            .all(|warning| !warning.contains("небезопасн")));
+        assert!(imported.document.content[0]
+            .content
+            .iter()
+            .all(|node| node.node_type != "image"));
+    }
+
+    fn link_mark(href: &str) -> PmMark {
+        let mut mark = PmMark::new("link");
+        mark.attrs = Some(json!({ "href": href }));
+        mark
+    }
+
+    #[test]
+    fn drops_unsafe_links_and_images_on_write() {
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: vec![
+                PmNode::with_content(
+                    "paragraph",
+                    vec![
+                        PmNode {
+                            marks: vec![link_mark("javascript:alert(1)")],
+                            ..PmNode::text("опасная")
+                        },
+                        PmNode::text(" "),
+                        PmNode {
+                            marks: vec![link_mark("https://example.com")],
+                            ..PmNode::text("безопасная")
+                        },
+                    ],
+                ),
+                PmNode {
+                    attrs: Some(json!({ "src": "javascript:alert(2)", "alt": "подпись" })),
+                    ..PmNode::with_content("image", Vec::new())
+                },
+            ],
+        };
+
+        let written = write(&document);
+
+        assert!(!written.text.contains("javascript:"));
+        assert!(written.text.contains("опасная"));
+        assert!(written.text.contains("[безопасная](https://example.com)"));
+        assert!(written.text.contains("подпись"));
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Ссылка")));
+        assert!(written
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Изображение")));
+    }
+
+    #[test]
+    fn writes_safe_links_without_warnings() {
+        let safe_links = [
+            "http://example.com",
+            "https://example.com",
+            "mailto:user@example.com",
+            "asset:image-1",
+            "tel:+123456",
+            "image.png",
+        ];
+        let document = PmDoc {
+            node_type: "doc".to_owned(),
+            attrs: None,
+            content: safe_links
+                .iter()
+                .map(|href| {
+                    PmNode::with_content(
+                        "paragraph",
+                        vec![PmNode {
+                            marks: vec![link_mark(href)],
+                            ..PmNode::text("ссылка")
+                        }],
+                    )
+                })
+                .collect(),
+        };
+
+        let written = write(&document);
+
+        for href in safe_links {
+            assert!(
+                written.text.contains(&format!("]({href})")),
+                "{href}: {}",
+                written.text
+            );
+        }
+
+        assert!(written
+            .warnings
+            .iter()
+            .all(|warning| !warning.contains("небезопасн")));
     }
 }

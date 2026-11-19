@@ -1,6 +1,8 @@
 use serde_json::{json, Map, Value};
 use wlite_docmodel::PmMark;
 
+pub use wlite_formats_core::is_safe_link;
+
 pub const DEFAULT_FONT_SIZE_UNITS: &[&str] = &["px", "pt", "em", "rem", "%"];
 
 pub fn parse_declarations(style: &str) -> Vec<(String, String)> {
@@ -186,19 +188,6 @@ pub fn is_safe_font_size(value: &str) -> bool {
     }
 
     unit.is_empty() || DEFAULT_FONT_SIZE_UNITS.contains(&unit)
-}
-
-pub fn is_safe_link(url: &str) -> bool {
-    let trimmed = url.trim();
-
-    if trimmed.is_empty() || trimmed.chars().any(char::is_control) {
-        return false;
-    }
-
-    let lowered = trimmed.to_ascii_lowercase();
-    !lowered.starts_with("javascript:")
-        && !lowered.starts_with("vbscript:")
-        && !lowered.starts_with("data:text/html")
 }
 
 pub fn paragraph_style(attrs: Option<&Value>) -> Vec<(String, String)> {
