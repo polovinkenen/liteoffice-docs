@@ -75,9 +75,9 @@ installed_binary=$(command -v "$binary_name")
 package=$(dpkg -S "$installed_binary" | cut -d: -f1)
 echo "пакет: $package, бинарник: $installed_binary"
 
-desktop=$(find /usr/share/applications -maxdepth 1 -type f -name "*.desktop" -exec grep -l "Name=LiteOffice Docs" {} + | head -n 1)
-if [ -z "$desktop" ]; then
-  echo "не найден .desktop LiteOffice Docs" >&2
+desktop="/usr/share/applications/LiteOffice Docs.desktop"
+if [ ! -f "$desktop" ]; then
+  echo "не найден $desktop" >&2
   exit 1
 fi
 
@@ -115,7 +115,7 @@ extract_dir=$(mktemp -d)
   "$appimage" --appimage-extract >/dev/null
 )
 
-appimage_desktop=$(find "$extract_dir/squashfs-root" -maxdepth 5 -type f -name "*.desktop" | head -n 1)
+appimage_desktop=$(find "$extract_dir/squashfs-root" -maxdepth 5 -type f -name "*.desktop" -print -quit)
 if [ -z "$appimage_desktop" ]; then
   echo "в AppImage нет .desktop" >&2
   exit 1
@@ -128,7 +128,7 @@ grep -Eq '^Exec=.* %F$' "$appimage_desktop" || {
 
 appimage_binary="$extract_dir/squashfs-root/AppRun"
 if [ ! -x "$appimage_binary" ]; then
-  appimage_binary=$(find "$extract_dir/squashfs-root/usr/bin" -type f -name "$binary_name" | head -n 1)
+  appimage_binary=$(find "$extract_dir/squashfs-root/usr/bin" -type f -name "$binary_name" -print -quit)
 fi
 if [ -z "$appimage_binary" ] || [ ! -x "$appimage_binary" ]; then
   echo "в AppImage не найден исполняемый файл" >&2
