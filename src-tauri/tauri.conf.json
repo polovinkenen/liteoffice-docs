@@ -43,7 +43,7 @@
     "fileAssociations": [
       {
         "name": "Документ Word",
-        "description": "Документ Word",
+        "description": "Word document",
         "ext": ["docx"],
         "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "contentTypes": ["org.openxmlformats.wordprocessingml.document"],
@@ -52,7 +52,7 @@
       },
       {
         "name": "Документ RTF",
-        "description": "Документ RTF",
+        "description": "Rich Text Format document",
         "ext": ["rtf"],
         "mimeType": "application/rtf",
         "contentTypes": ["public.rtf"],
@@ -61,7 +61,7 @@
       },
       {
         "name": "Текстовый документ",
-        "description": "Текстовый документ",
+        "description": "Text document",
         "ext": ["txt"],
         "mimeType": "text/plain",
         "contentTypes": ["public.plain-text"],
@@ -70,7 +70,7 @@
       },
       {
         "name": "Документ Markdown",
-        "description": "Документ Markdown",
+        "description": "Markdown document",
         "ext": ["md", "markdown"],
         "mimeType": "text/markdown",
         "contentTypes": ["net.daringfireball.markdown"],
@@ -79,7 +79,7 @@
       },
       {
         "name": "HTML-документ",
-        "description": "HTML-документ",
+        "description": "HTML document",
         "ext": ["html", "htm"],
         "mimeType": "text/html",
         "contentTypes": ["public.html"],
