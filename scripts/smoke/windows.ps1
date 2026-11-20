@@ -221,12 +221,16 @@ Wait-NoExe $exe
 
 Write-Host "NSIS: установка, ассоциации, открытие и удаление — ok"
 
+function Assert-MsiExit([int]$code, [string]$action) {
+  if ($code -ne 0 -and $code -ne 3010) {
+    throw "$action завершилась с кодом $code"
+  }
+}
+
 $msiProcess = Start-Process -FilePath "msiexec.exe" `
   -ArgumentList "/i", "`"$($msi.FullName)`"", "/qn", "/norestart" `
   -Wait -PassThru
-if ($msiProcess.ExitCode -ne 0) {
-  throw "установка MSI завершилась с кодом $($msiProcess.ExitCode)"
-}
+Assert-MsiExit $msiProcess.ExitCode "установка MSI"
 
 $exe = Wait-AppExe
 if (-not $exe) {
@@ -258,9 +262,7 @@ $code = Split-Path $entry.PSPath -Leaf
 $removeProcess = Start-Process -FilePath "msiexec.exe" `
   -ArgumentList "/x", $code, "/qn", "/norestart" `
   -Wait -PassThru
-if ($removeProcess.ExitCode -ne 0) {
-  throw "удаление MSI завершилось с кодом $($removeProcess.ExitCode)"
-}
+Assert-MsiExit $removeProcess.ExitCode "удаление MSI"
 Wait-NoExe $exe
 
 Write-Host "MSI: установка и удаление — ok"
