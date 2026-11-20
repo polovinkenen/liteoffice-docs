@@ -86,6 +86,7 @@ where
     paths
 }
 
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn collect_urls(urls: &[tauri::Url]) -> Vec<String> {
     let paths: Vec<PathBuf> = urls
         .iter()
