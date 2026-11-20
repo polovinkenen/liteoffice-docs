@@ -45,14 +45,19 @@ jobs:
     needs: [version, checks]
     uses: ./.github/workflows/bundle.yml
 
-  release:
+  smoke:
     needs: bundle
+    uses: ./.github/workflows/smoke.yml
+
+  release:
+    needs: [bundle, smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: liteoffice-docs-*
           merge-multiple: true
 
       - name: Опубликовать установщики

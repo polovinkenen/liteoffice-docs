@@ -39,6 +39,53 @@
     ],
     "category": "Productivity",
     "shortDescription": "Редактор документов",
-    "longDescription": "Кроссплатформенный редактор документов с поддержкой DOCX, RTF, Markdown, HTML и экспортом в PDF."
+    "longDescription": "Кроссплатформенный редактор документов с поддержкой DOCX, RTF, Markdown, HTML и экспортом в PDF.",
+    "fileAssociations": [
+      {
+        "name": "Документ Word",
+        "description": "Документ Word",
+        "ext": ["docx"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "contentTypes": ["org.openxmlformats.wordprocessingml.document"],
+        "role": "Editor",
+        "rank": "Default"
+      },
+      {
+        "name": "Документ RTF",
+        "description": "Документ RTF",
+        "ext": ["rtf"],
+        "mimeType": "application/rtf",
+        "contentTypes": ["public.rtf"],
+        "role": "Editor",
+        "rank": "Default"
+      },
+      {
+        "name": "Текстовый документ",
+        "description": "Текстовый документ",
+        "ext": ["txt"],
+        "mimeType": "text/plain",
+        "contentTypes": ["public.plain-text"],
+        "role": "Editor",
+        "rank": "Default"
+      },
+      {
+        "name": "Документ Markdown",
+        "description": "Документ Markdown",
+        "ext": ["md", "markdown"],
+        "mimeType": "text/markdown",
+        "contentTypes": ["net.daringfireball.markdown"],
+        "role": "Editor",
+        "rank": "Default"
+      },
+      {
+        "name": "HTML-документ",
+        "description": "HTML-документ",
+        "ext": ["html", "htm"],
+        "mimeType": "text/html",
+        "contentTypes": ["public.html"],
+        "role": "Editor",
+        "rank": "Default"
+      }
+    ]
   }
 }

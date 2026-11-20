@@ -6,6 +6,7 @@ import FileBanner from "./features/file/FileBanner";
 import SaveFormatDialog from "./features/file/SaveFormatDialog";
 import { MENU_EVENT } from "./features/file/menuEvents";
 import { useDropFiles } from "./features/file/useDropFiles";
+import { useOpenedFiles } from "./features/file/useOpenedFiles";
 import PdfExportDialog from "./features/pdf/PdfExportDialog";
 import { usePdfExport } from "./features/pdf/usePdfExport";
 import SettingsMenu from "./features/settings/SettingsMenu";
@@ -22,6 +23,7 @@ export default function App() {
     autosaveEnabled: settings.settings.autosaveEnabled,
   });
   const dragging = useDropFiles(workspace.openPaths);
+  useOpenedFiles(workspace.openPaths);
   const pdf = usePdfExport(workspace);
   const showPdfExport = pdf.show;
   const active = workspace.activeTab;

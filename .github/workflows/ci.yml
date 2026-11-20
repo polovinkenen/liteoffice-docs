@@ -22,3 +22,8 @@ jobs:
     needs: checks
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/bundle.yml
+
+  smoke:
+    needs: bundle
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/smoke.yml

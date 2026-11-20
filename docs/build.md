@@ -75,11 +75,36 @@ npx tauri build --target aarch64-apple-darwin --bundles dmg
 - `bundle.yml` — матрица macOS arm64, Windows x64, Ubuntu 22.04; собирает
   `.dmg`, `.msi`+NSIS, `.deb`+`.AppImage` и загружает артефакты
   `liteoffice-docs-macos-arm64`, `liteoffice-docs-windows-x64`, `liteoffice-docs-linux-x64` на 30 дней.
+- `smoke.yml` — после `bundle.yml` ставит собранные пакеты на чистых Windows и
+  Ubuntu: `.deb` и AppImage, NSIS и MSI. Проверяет `.desktop`/реестр, ассоциации,
+  открытие файла из argv (по `recent.json`), передачу второго файла в запущенный
+  экземпляр и удаление. Вызывается из `ci.yml` и `release.yml`; в релизе падение
+  smoke блокирует публикацию.
 - `release.yml` — по тегу `v*` сверяет версии `package.json` и
-  `src-tauri/tauri.conf.json`, запускает checks и bundle, затем прикрепляет
-  установщики к GitHub Release.
+  `src-tauri/tauri.conf.json`, запускает checks, bundle и smoke, затем прикрепляет
+  только установщики (`liteoffice-docs-*`) к GitHub Release.
 - `fuzz.yml` — еженедельно по расписанию и вручную запускает все fuzz-таргеты по
   60 секунд с `rss_limit_mb=2048`, при падении выгружает `fuzz/artifacts/<target>`.
+
+## Smoke-установка
+
+Скрипты можно запустить локально на собранных артефактах:
+
+```bash
+# Linux (нужны sudo, xvfb, dbus-x11, desktop-file-utils)
+scripts/smoke/linux.sh target/release/bundle
+
+# Windows (PowerShell 7)
+pwsh -File scripts/smoke/windows.ps1 target/release/bundle
+```
+
+Linux-скрипт ставит `.deb`, проверяет `Exec=... %F` и `MimeType` через
+`desktop-file-validate`, затем под `dbus-run-session -- xvfb-run` открывает два файла
+(второй — в уже запущенный экземпляр) и сверяет `~/.local/share/app.liteoffice.docs/recent.json`.
+После этого распаковывает AppImage (`--appimage-extract`) и повторяет сценарий через
+`AppRun`. Windows-скрипт ставит NSIS и MSI по очереди, проверяет записи
+`Software\Classes` и команду открытия, повторяет E2E с `%APPDATA%\app.liteoffice.docs\recent.json`,
+затем удаляет пакеты.
 
 ## Fuzz
 

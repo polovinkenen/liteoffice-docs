@@ -1,0 +1,61 @@
+name: Smoke
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: liteoffice-docs-windows-x64
+            script: scripts/smoke/windows.ps1
+            shell: pwsh
+          - os: ubuntu-22.04
+            artifact: liteoffice-docs-linux-x64
+            script: scripts/smoke/linux.sh
+            shell: bash
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Скачать установщики
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts
+
+      - name: Системные зависимости Linux
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb dbus-x11 desktop-file-utils
+
+      - name: Smoke-установка
+        shell: ${{ matrix.shell }}
+        run: ${{ matrix.script }} artifacts
+
+      - name: Собрать логи Linux
+        if: failure() && matrix.os == 'ubuntu-22.04'
+        run: cp -r ~/.local/share/app.liteoffice.docs smoke-logs || true
+
+      - name: Собрать логи Windows
+        if: failure() && matrix.os == 'windows-latest'
+        shell: pwsh
+        run: Copy-Item "$env:APPDATA\app.liteoffice.docs" smoke-logs -Recurse -ErrorAction SilentlyContinue
+
+      - name: Выгрузить логи
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs-${{ matrix.os }}
+          path: smoke-logs
+          if-no-files-found: ignore
+          retention-days: 7
