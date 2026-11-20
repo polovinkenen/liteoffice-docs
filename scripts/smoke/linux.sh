@@ -23,6 +23,11 @@ if [ "${1:-}" = "e2e" ]; then
   wait_recent() {
     local needle="$1"
     for _ in $(seq 1 60); do
+      if [ -n "$first_pid" ] && ! kill -0 "$first_pid" 2>/dev/null; then
+        echo "приложение завершилось, не открыв $needle" >&2
+        cat "$work/first.log" >&2 || true
+        return 1
+      fi
       if [ -f "$recent" ] && grep -qF "$needle" "$recent"; then
         return 0
       fi
@@ -30,6 +35,7 @@ if [ "${1:-}" = "e2e" ]; then
     done
     echo "не дождались открытия $needle" >&2
     [ -f "$recent" ] && cat "$recent" >&2 || true
+    cat "$work/first.log" >&2 || true
     return 1
   }
 
@@ -37,14 +43,16 @@ if [ "${1:-}" = "e2e" ]; then
 
   first="$work/первый.md"
   printf '# Первый\n' >"$first"
-  "$binary" "$first" >"$work/first.log" 2>&1 &
+  WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 GDK_BACKEND=x11 \
+    "$binary" "$first" >"$work/first.log" 2>&1 &
   first_pid=$!
   wait_recent "$(basename "$first")"
 
   second="$work/второй.md"
   printf '# Второй\n' >"$second"
   status=0
-  timeout 30 "$binary" "$second" >"$work/second.log" 2>&1 || status=$?
+  WEBKIT_DISABLE_COMPOSITING_MODE=1 WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 GDK_BACKEND=x11 \
+    timeout 30 "$binary" "$second" >"$work/second.log" 2>&1 || status=$?
   if [ "$status" -ne 0 ]; then
     echo "второй экземпляр не завершился после передачи пути (код $status)" >&2
     cat "$work/second.log" >&2 || true
