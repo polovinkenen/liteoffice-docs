@@ -3,10 +3,11 @@ set -euo pipefail
 
 app_id="app.liteoffice.docs"
 binary_name="liteoffice-docs"
+script_path=$(realpath "$0")
 
 if [ "${1:-}" = "e2e" ]; then
   binary="${2:?укажите путь к исполняемому файлу}"
-  data_dir="$HOME/.local/share/$app_id"
+  data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/$app_id"
   recent="$data_dir/recent.json"
   work=$(mktemp -d)
   first_pid=""
@@ -67,7 +68,8 @@ fi
 
 sudo apt-get update
 sudo apt-get install -y xvfb dbus-x11 desktop-file-utils
-sudo apt-get install -y "$deb"
+cp "$(realpath "$deb")" /tmp/liteoffice-docs-smoke.deb
+sudo apt-get install -y /tmp/liteoffice-docs-smoke.deb
 
 installed_binary=$(command -v "$binary_name")
 package=$(dpkg -S "$installed_binary" | cut -d: -f1)
@@ -97,7 +99,7 @@ fi
 sudo update-desktop-database /usr/share/applications || true
 echo "xdg-mime text/markdown: $(xdg-mime query default text/markdown || true)"
 
-dbus-run-session -- xvfb-run -a "$0" e2e "$installed_binary"
+dbus-run-session -- xvfb-run -a "$script_path" e2e "$installed_binary"
 
 sudo dpkg -r "$package"
 if command -v "$binary_name" >/dev/null 2>&1; then
@@ -105,6 +107,7 @@ if command -v "$binary_name" >/dev/null 2>&1; then
   exit 1
 fi
 
+appimage=$(realpath "$appimage")
 chmod +x "$appimage"
 extract_dir=$(mktemp -d)
 (
@@ -132,6 +135,6 @@ if [ -z "$appimage_binary" ] || [ ! -x "$appimage_binary" ]; then
   exit 1
 fi
 
-dbus-run-session -- xvfb-run -a "$0" e2e "$appimage_binary"
+dbus-run-session -- xvfb-run -a "$script_path" e2e "$appimage_binary"
 
 echo "smoke linux: ok"

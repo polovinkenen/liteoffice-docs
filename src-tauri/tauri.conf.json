@@ -42,7 +42,7 @@
     "longDescription": "Кроссплатформенный редактор документов с поддержкой DOCX, RTF, Markdown, HTML и экспортом в PDF.",
     "fileAssociations": [
       {
-        "name": "Документ Word",
+        "name": "LiteOfficeDocs.Word",
         "description": "Word document",
         "ext": ["docx"],
         "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -51,7 +51,7 @@
         "rank": "Default"
       },
       {
-        "name": "Документ RTF",
+        "name": "LiteOfficeDocs.Rtf",
         "description": "Rich Text Format document",
         "ext": ["rtf"],
         "mimeType": "application/rtf",
@@ -60,7 +60,7 @@
         "rank": "Default"
       },
       {
-        "name": "Текстовый документ",
+        "name": "LiteOfficeDocs.Text",
         "description": "Text document",
         "ext": ["txt"],
         "mimeType": "text/plain",
@@ -69,7 +69,7 @@
         "rank": "Default"
       },
       {
-        "name": "Документ Markdown",
+        "name": "LiteOfficeDocs.Markdown",
         "description": "Markdown document",
         "ext": ["md", "markdown"],
         "mimeType": "text/markdown",
@@ -78,7 +78,7 @@
         "rank": "Default"
       },
       {
-        "name": "HTML-документ",
+        "name": "LiteOfficeDocs.Html",
         "description": "HTML document",
         "ext": ["html", "htm"],
         "mimeType": "text/html",

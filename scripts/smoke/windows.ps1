@@ -53,6 +53,14 @@ function Wait-NoExe([string]$path, [int]$seconds = 30) {
   throw "после удаления остался $path"
 }
 
+function Get-DefaultValue([string]$key) {
+  if (-not (Test-Path $key)) {
+    return $null
+  }
+
+  return (Get-Item -Path $key).GetValue("")
+}
+
 function Get-AssociationProgIds([string]$root, [string]$extension) {
   $key = "Registry::$root\Software\Classes\$extension"
   if (-not (Test-Path $key)) {
@@ -60,7 +68,7 @@ function Get-AssociationProgIds([string]$root, [string]$extension) {
   }
 
   $ids = @()
-  $default = (Get-Item -Path $key).GetValue("")
+  $default = Get-DefaultValue $key
   if ($default) {
     $ids += $default
   }
@@ -73,22 +81,84 @@ function Get-AssociationProgIds([string]$root, [string]$extension) {
   return $ids | Where-Object { $_ } | Select-Object -Unique
 }
 
+function Get-AssociationReport([string]$extension) {
+  $lines = @()
+
+  foreach ($root in @("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE")) {
+    $key = "Registry::$root\Software\Classes\$extension"
+    if (-not (Test-Path $key)) {
+      $lines += "$root .${extension}: ключ отсутствует"
+      continue
+    }
+
+    $default = Get-DefaultValue $key
+    $lines += "$root .${extension}: default=[$default]"
+
+    foreach ($id in Get-AssociationProgIds $root $extension) {
+      $commandKey = "Registry::$root\Software\Classes\$id\shell\open\command"
+      if (Test-Path $commandKey) {
+        $command = Get-DefaultValue $commandKey
+        $lines += "  [$id] command=[$command]"
+      } else {
+        $lines += "  [$id] ключ команды отсутствует"
+      }
+    }
+  }
+
+  return $lines
+}
+
+function Find-AssociationCommands([string]$exeLeaf) {
+  $lines = @()
+
+  foreach ($root in @("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE")) {
+    $base = "Registry::$root\Software\Classes"
+    foreach ($key in Get-ChildItem -Path $base -ErrorAction SilentlyContinue) {
+      $commandKey = Join-Path $key.PSPath "shell\open\command"
+      if (-not (Test-Path $commandKey)) {
+        continue
+      }
+      $command = Get-DefaultValue $commandKey
+      if ($command -and $command -like "*$exeLeaf*") {
+        $lines += "$root $($key.PSChildName) => $command"
+      }
+    }
+  }
+
+  return $lines
+}
+
 function Assert-Association([string]$extension, [string]$exe) {
+  $exeLeaf = Split-Path $exe -Leaf
+
+  $assoc = (& cmd.exe /c "assoc .$extension" 2>&1 | Out-String).Trim()
+  if ($LASTEXITCODE -eq 0 -and $assoc -like "*=*") {
+    $progId = ($assoc -split "=", 2)[1].Trim()
+    $ftype = (& cmd.exe /c "ftype $progId" 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -eq 0 -and $ftype -like "*$exeLeaf*") {
+      Write-Host "ассоциация .${extension}: $progId"
+      return
+    }
+  }
+
   foreach ($root in @("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE")) {
     foreach ($id in Get-AssociationProgIds $root $extension) {
       $commandKey = "Registry::$root\Software\Classes\$id\shell\open\command"
       if (-not (Test-Path $commandKey)) {
         continue
       }
-      $command = (Get-Item -Path $commandKey).GetValue("")
-      if ($command -and $command -like "*$exe*") {
+      $command = Get-DefaultValue $commandKey
+      if ($command -and $command -like "*$exeLeaf*") {
         Write-Host "ассоциация .${extension}: $id"
         return
       }
     }
   }
 
-  throw "команда открытия .$extension не указывает на $exe"
+  $report = @(Get-AssociationReport $extension) + @(Find-AssociationCommands $exeLeaf)
+  $report += (& reg.exe query "HKCU\Software\Classes" /f "liteoffice-docs.exe" /s 2>&1 | Out-String)
+  $report += (& reg.exe query "HKLM\Software\Classes" /f "liteoffice-docs.exe" /s 2>&1 | Out-String)
+  throw "команда открытия .$extension не указывает на $exe`n$($report -join "`n")"
 }
 
 function Clear-AppData {
