@@ -53,113 +53,80 @@ function Wait-NoExe([string]$path, [int]$seconds = 30) {
   throw "после удаления остался $path"
 }
 
-function Get-DefaultValue([string]$key) {
-  if (-not (Test-Path $key)) {
+function Get-RegDefault([string]$key) {
+  $output = & reg.exe query $key /ve 2>&1 | Out-String
+  if ($LASTEXITCODE -ne 0) {
     return $null
   }
 
-  return (Get-Item -Path $key).GetValue("")
+  foreach ($line in ($output -split "`r?`n")) {
+    $match = [regex]::Match($line, 'REG_(?:EXPAND_)?SZ(?:\s{2,}(.*))?$')
+    if ($match.Success) {
+      return $match.Groups[1].Value.Trim()
+    }
+  }
+
+  return $null
 }
 
-function Get-AssociationProgIds([string]$root, [string]$extension) {
-  $key = "Registry::$root\Software\Classes\$extension"
-  if (-not (Test-Path $key)) {
+function Get-RegValues([string]$key) {
+  $output = & reg.exe query $key 2>&1 | Out-String
+  if ($LASTEXITCODE -ne 0) {
     return @()
   }
 
-  $ids = @()
-  $default = Get-DefaultValue $key
-  if ($default) {
-    $ids += $default
-  }
-
-  $openWith = Join-Path $key "OpenWithProgids"
-  if (Test-Path $openWith) {
-    $ids += (Get-Item -Path $openWith).GetValueNames()
-  }
-
-  return $ids | Where-Object { $_ } | Select-Object -Unique
-}
-
-function Get-AssociationReport([string]$extension) {
-  $lines = @()
-
-  foreach ($root in @("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE")) {
-    $key = "Registry::$root\Software\Classes\$extension"
-    if (-not (Test-Path $key)) {
-      $lines += "$root .${extension}: ключ отсутствует"
-      continue
-    }
-
-    $default = Get-DefaultValue $key
-    $lines += "$root .${extension}: default=[$default]"
-
-    foreach ($id in Get-AssociationProgIds $root $extension) {
-      $commandKey = "Registry::$root\Software\Classes\$id\shell\open\command"
-      if (Test-Path $commandKey) {
-        $command = Get-DefaultValue $commandKey
-        $lines += "  [$id] command=[$command]"
-      } else {
-        $lines += "  [$id] ключ команды отсутствует"
+  $values = @()
+  foreach ($line in ($output -split "`r?`n")) {
+    $match = [regex]::Match($line, '^\s{4}(.+?)\s{2,}REG_(?:EXPAND_)?SZ(?:\s{2,}(.*))?$')
+    if ($match.Success) {
+      $values += [pscustomobject]@{
+        Name = $match.Groups[1].Value.Trim()
+        Value = $match.Groups[2].Value.Trim()
       }
     }
   }
 
-  return $lines
-}
-
-function Find-AssociationCommands([string]$exeLeaf) {
-  $lines = @()
-
-  foreach ($root in @("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE")) {
-    $base = "Registry::$root\Software\Classes"
-    foreach ($key in Get-ChildItem -Path $base -ErrorAction SilentlyContinue) {
-      $commandKey = Join-Path $key.PSPath "shell\open\command"
-      if (-not (Test-Path $commandKey)) {
-        continue
-      }
-      $command = Get-DefaultValue $commandKey
-      if ($command -and $command -like "*$exeLeaf*") {
-        $lines += "$root $($key.PSChildName) => $command"
-      }
-    }
-  }
-
-  return $lines
+  return $values
 }
 
 function Assert-Association([string]$extension, [string]$exe) {
   $exeLeaf = Split-Path $exe -Leaf
+  $report = @()
 
-  $assoc = (& cmd.exe /c "assoc .$extension" 2>&1 | Out-String).Trim()
-  if ($LASTEXITCODE -eq 0 -and $assoc -like "*=*") {
-    $progId = ($assoc -split "=", 2)[1].Trim()
-    $ftype = (& cmd.exe /c "ftype $progId" 2>&1 | Out-String).Trim()
-    if ($LASTEXITCODE -eq 0 -and $ftype -like "*$exeLeaf*") {
-      Write-Host "ассоциация .${extension}: $progId"
-      return
+  foreach ($root in @("HKCU", "HKLM")) {
+    $extensionKey = "$root\Software\Classes\.$extension"
+    $progIds = @()
+
+    $default = Get-RegDefault $extensionKey
+    if ($default) {
+      $progIds += $default
     }
-  }
 
-  foreach ($root in @("HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE")) {
-    foreach ($id in Get-AssociationProgIds $root $extension) {
-      $commandKey = "Registry::$root\Software\Classes\$id\shell\open\command"
-      if (-not (Test-Path $commandKey)) {
-        continue
+    foreach ($value in Get-RegValues "$extensionKey\OpenWithProgids") {
+      if ($value.Name -and $value.Name -ne "(Default)") {
+        $progIds += $value.Name
       }
-      $command = Get-DefaultValue $commandKey
+    }
+
+    $progIds = $progIds | Where-Object { $_ } | Select-Object -Unique
+
+    foreach ($id in $progIds) {
+      $command = Get-RegDefault "$root\Software\Classes\$id\shell\open\command"
       if ($command -and $command -like "*$exeLeaf*") {
-        Write-Host "ассоциация .${extension}: $id"
+        Write-Host "ассоциация .${extension}: $id ($root)"
         return
       }
+      $report += "$root .$extension -> $id: command=[$command]"
+    }
+
+    if (-not $progIds) {
+      $report += "$root .$extension: нет ProgID"
     }
   }
 
-  $report = @("assoc .$extension => [$assoc]") + @(Get-AssociationReport $extension) + @(Find-AssociationCommands $exeLeaf)
   $report += (& reg.exe query "HKCU\Software\Classes\.$extension" /s 2>&1 | Out-String)
   $report += (& reg.exe query "HKLM\Software\Classes\.$extension" /s 2>&1 | Out-String)
   $report += (& reg.exe query "HKCU\Software\Classes" /f "liteoffice-docs.exe" /s 2>&1 | Out-String)
-  $report += (& reg.exe query "HKLM\Software\Classes" /f "liteoffice-docs.exe" /s 2>&1 | Out-String)
   throw "команда открытия .$extension не указывает на $exe`n$($report -join "`n")"
 }
 
