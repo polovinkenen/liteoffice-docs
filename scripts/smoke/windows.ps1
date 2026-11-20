@@ -116,11 +116,11 @@ function Assert-Association([string]$extension, [string]$exe) {
         Write-Host "ассоциация .${extension}: $id ($root)"
         return
       }
-      $report += "$root .$extension -> $id: command=[$command]"
+      $report += "$root .$extension -> ${id}: command=[$command]"
     }
 
     if (-not $progIds) {
-      $report += "$root .$extension: нет ProgID"
+      $report += "$root .${extension}: нет ProgID"
     }
   }
 
