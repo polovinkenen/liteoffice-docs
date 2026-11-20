@@ -245,7 +245,10 @@ $uninstallRoots = @(
 )
 $entry = Get-ChildItem -Path $uninstallRoots -ErrorAction SilentlyContinue |
   Get-ItemProperty |
-  Where-Object { $_.DisplayName -like "LiteOffice Docs*" } |
+  Where-Object {
+    $_.PSObject.Properties["DisplayName"] -and
+    $_.DisplayName -like "LiteOffice Docs*"
+  } |
   Select-Object -First 1
 if (-not $entry) {
   throw "MSI не оставил запись деинсталляции"
