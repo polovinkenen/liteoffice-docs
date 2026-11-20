@@ -251,6 +251,7 @@ $entry = Get-ChildItem -Path $uninstallRoots -ErrorAction SilentlyContinue |
   Get-ItemProperty |
   Where-Object {
     $_.PSObject.Properties["DisplayName"] -and
+    $_.PSChildName -match '^\{[0-9A-Fa-f-]{36}\}$' -and
     $_.DisplayName -like "LiteOffice Docs*"
   } |
   Select-Object -First 1
