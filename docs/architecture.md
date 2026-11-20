@@ -59,8 +59,11 @@ UTF-8 и снимает BOM; RTF переопределяет декодиров
 
 Ассоциации заданы в `bundle.fileAssociations` (`docx`, `rtf`, `txt`, `md`/`markdown`,
 `html`/`htm`, `role: Editor`, `rank: Default`). Tauri переносит их в Info.plist на
-macOS, в реестр NSIS/MSI на Windows и в `.desktop` на Linux; для Linux бандлер сам
-добавляет `MimeType` и `Exec=... %F`, поэтому файлы приходят аргументами.
+macOS, в реестр NSIS/MSI на Windows и в `.desktop` на Linux. На Linux `Exec=... %F`
+и `MimeType` приходят из собственного шаблона `src-tauri/linux/main.desktop`; на
+Windows `src-tauri/windows/installer-hooks.nsh` дополнительно пишет
+`OpenWithProgids`, потому что встроенный NSIS-бандлер в режиме currentUser не создаёт
+ключи расширений.
 
 1. Первый запуск: `setup` читает `std::env::args_os().skip(1)`, второй экземпляр:
    `tauri-plugin-single-instance` передаёт `args` и `cwd`, macOS: `RunEvent::Opened`

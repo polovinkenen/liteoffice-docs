@@ -155,7 +155,9 @@ function Assert-Association([string]$extension, [string]$exe) {
     }
   }
 
-  $report = @(Get-AssociationReport $extension) + @(Find-AssociationCommands $exeLeaf)
+  $report = @("assoc .$extension => [$assoc]") + @(Get-AssociationReport $extension) + @(Find-AssociationCommands $exeLeaf)
+  $report += (& reg.exe query "HKCU\Software\Classes\.$extension" /s 2>&1 | Out-String)
+  $report += (& reg.exe query "HKLM\Software\Classes\.$extension" /s 2>&1 | Out-String)
   $report += (& reg.exe query "HKCU\Software\Classes" /f "liteoffice-docs.exe" /s 2>&1 | Out-String)
   $report += (& reg.exe query "HKLM\Software\Classes" /f "liteoffice-docs.exe" /s 2>&1 | Out-String)
   throw "команда открытия .$extension не указывает на $exe`n$($report -join "`n")"

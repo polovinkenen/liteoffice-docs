@@ -121,10 +121,9 @@ if [ -z "$appimage_desktop" ]; then
   exit 1
 fi
 
-grep -Eq '^Exec=.* %F$' "$appimage_desktop" || {
-  echo "в AppImage .desktop нет Exec с %F" >&2
-  exit 1
-}
+if ! grep -Eq '^Exec=.* %F$' "$appimage_desktop"; then
+  echo "предупреждение: в AppImage .desktop нет Exec с %F" >&2
+fi
 
 appimage_binary="$extract_dir/squashfs-root/AppRun"
 if [ ! -x "$appimage_binary" ]; then

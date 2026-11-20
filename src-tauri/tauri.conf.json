@@ -40,6 +40,16 @@
     "category": "Productivity",
     "shortDescription": "Редактор документов",
     "longDescription": "Кроссплатформенный редактор документов с поддержкой DOCX, RTF, Markdown, HTML и экспортом в PDF.",
+    "linux": {
+      "deb": {
+        "desktopTemplate": "linux/main.desktop"
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installerHooks": "windows/installer-hooks.nsh"
+      }
+    },
     "fileAssociations": [
       {
         "name": "LiteOfficeDocs.Word",
