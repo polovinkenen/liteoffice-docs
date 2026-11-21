@@ -5,6 +5,18 @@
 Кроссплатформенный (macOS, Linux, Windows) редактор документов — аналог Word для
 повседневных задач. Ядро на Rust, интерфейс на React и TipTap, оболочка на Tauri 2.
 
+## Скриншоты
+
+<img src="docs/screenshots/editor-light.png" alt="Редактор LiteOffice Docs со светлой темой и открытым документом" width="820">
+
+| Стартовый экран | Тёмная тема |
+| --- | --- |
+| <img src="docs/screenshots/start-light.png" alt="Стартовый экран с недавними документами" width="400"> | <img src="docs/screenshots/editor-dark.png" alt="Редактор в тёмной теме" width="400"> |
+
+| Поиск и замена | Экспорт в PDF |
+| --- | --- |
+| <img src="docs/screenshots/search.png" alt="Поиск с подсветкой совпадений и заменой" width="400"> | <img src="docs/screenshots/pdf-export.png" alt="Диалог экспорта PDF с параметрами страницы" width="400"> |
+
 ## Статус
 
 Работают окно приложения, WYSIWYG-редактор, несколько документов во вкладках, открытие
