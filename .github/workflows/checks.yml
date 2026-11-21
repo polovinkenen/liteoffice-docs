@@ -37,6 +37,12 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
+
+      - name: Проверить THIRD_PARTY_NOTICES.md
+        run: |
+          node scripts/third-party-notices.mjs > /tmp/third-party-notices.md
+          diff -u THIRD_PARTY_NOTICES.md /tmp/third-party-notices.md
+
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace

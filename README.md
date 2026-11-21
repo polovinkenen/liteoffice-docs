@@ -278,22 +278,39 @@ cargo test -p formats --test perf -- --ignored --nocapture
 - память — лимиты импорта (`MAX_NODES`) и размер промежуточных токенов.
 Фактическую таблицу чисел всегда печатает сам тест.
 
-## Установщики
+## Установка
 
-CI собирает установщики на трёх ОС:
-- macOS arm64 — `.dmg`;
-- Windows x64 — `.exe` (NSIS) и `.msi`;
-- Linux x64 — `.deb` и `.AppImage`.
+Основные платформы — macOS и Linux. CI дополнительно собирает Windows-установщики, но
+их поддержка вторична.
 
-Workflows:
-- `CI` — проверки, а на push в `master`/`main` и по ручному запуску ещё и бандлы;
-- `Bundles` — общая сборка установщиков для CI и релизов;
-- `Release` — по тегу `v*` собирает установщики и прикрепляет их к GitHub Release.
+Скачать сборку можно из GitHub Releases, а промежуточные артефакты — из Actions →
+нужный run → Artifacts (`liteoffice-docs-macos-arm64`, `liteoffice-docs-linux-x64`,
+`liteoffice-docs-windows-x64`).
 
-Скачать сборку:
-- из GitHub Releases — готовые файлы после релиза;
-- из Actions → нужный run → Artifacts (`liteoffice-docs-macos-arm64`,
-  `liteoffice-docs-windows-x64`, `liteoffice-docs-linux-x64`).
+Сборки пока не подписаны и не нотаризованы, поэтому система предупреждает при первом
+запуске. План перехода на подписанные сборки — в [docs/distribution.md](docs/distribution.md).
+
+macOS (Apple Silicon):
+1. Откройте `.dmg` и перетащите `LiteOffice Docs.app` в «Программы».
+2. Попробуйте запустить приложение — macOS заблокирует его.
+3. macOS 15 Sequoia и новее: «Системные настройки» → «Конфиденциальность и
+   безопасность» → «Всё равно открыть». Правый клик → «Открыть» в этих версиях больше
+   не работает.
+4. macOS 14 и старше: правый клик по приложению → «Открыть».
+5. Альтернатива для любой версии:
+   `xattr -dr com.apple.quarantine "/Applications/LiteOffice Docs.app"`.
+
+Linux x64:
+```bash
+sudo dpkg -i liteoffice-docs_*.deb
+# или
+chmod +x LiteOffice*Docs_*.AppImage && ./LiteOffice*Docs_*.AppImage
+```
+Для AppImage нужен `libfuse2`, для сборки из исходников — пакеты из
+[docs/build.md](docs/build.md).
+
+Windows x64 (вторичная платформа): `.exe` (NSIS) или `.msi`, SmartScreen →
+«Подробнее» → «Выполнить всё равно».
 
 Локальная сборка macOS:
 ```bash
@@ -307,11 +324,11 @@ git tag -a v0.1.0 -m "LiteOffice Docs 0.1.0"
 git push origin v0.1.0
 ```
 
-Подписи пока не настроены, поэтому установщики неподписанные:
-- macOS: правый клик по `LiteOffice Docs.app` → «Открыть» либо
-  `xattr -dr com.apple.quarantine "/Applications/LiteOffice Docs.app"`;
-- Windows: SmartScreen → «Подробнее» → «Выполнить всё равно»;
-- Linux: `sudo dpkg -i liteoffice-docs_*.deb` или `chmod +x LiteOffice*Docs_*.AppImage`.
+Workflows:
+- `CI` — проверки, а на push в `master`/`main` и по ручному запуску ещё и бандлы;
+- `Bundles` — общая сборка установщиков для CI и релизов;
+- `Release` — по тегу `v*` собирает установщики и прикрепляет их к GitHub Release;
+- `DCO` — проверяет `Signed-off-by` в коммитах pull request.
 
 ## Структура
 
@@ -342,8 +359,14 @@ git push origin v0.1.0
 │   └── export-pdf/         конвертация модели в Typst-разметку и сборка PDF
 ├── fuzz/                   cargo-fuzz таргеты импорта (вне workspace)
 ├── tests/fixtures/         общие фикстуры тестов
+├── scripts/                dev- и smoke-скрипты, генератор notices
+├── LICENSE                 MIT
+├── DCO                     Developer Certificate of Origin
+├── CONTRIBUTING.md         правила участия и подпись коммитов
+├── SECURITY.md             приватный канал для уязвимостей
+├── THIRD_PARTY_NOTICES.md  лицензии зависимостей и встроенных шрифтов
 ├── Cargo.toml              Rust workspace
-└── .github/workflows/      CI для macOS, Linux и Windows
+└── .github/workflows/      CI, DCO, бандлы и релизы
 ```
 
 ## Документация
@@ -354,6 +377,8 @@ git push origin v0.1.0
   golden/fuzz/perf;
 - [docs/limitations.md](docs/limitations.md) — известные ограничения;
 - [docs/build.md](docs/build.md) — сборка, CI, fuzz, бенчмарк и troubleshooting;
+- [docs/distribution.md](docs/distribution.md) — каналы дистрибуции, подпись,
+  нотаризация и автообновление;
 - [docs/acceptance.md](docs/acceptance.md) — матрица форматов, автоматические
   проверки, CI на всех ОС, ручной чек-лист приёмки и открытые пункты;
 - [docs/adr/](docs/adr/) — архитектурные решения.
@@ -388,6 +413,14 @@ git push origin v0.1.0
 - ODT, импорт PDF, сноски, оглавление, рецензирование и совместное редактирование
   в текущий объём не входят.
 
+## Участие
+
+Проект принимает pull request по [DCO](DCO): подписывайте коммиты через
+`git commit -s`. Сборка, проверки и стиль описаны в
+[CONTRIBUTING.md](CONTRIBUTING.md), уязвимости — в [SECURITY.md](SECURITY.md).
+
 ## Лицензия
 
-MIT.
+MIT, полный текст — в [LICENSE](LICENSE). Список сторонних компонентов и тексты их
+лицензий — в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); файл включён в
+установщики и генерируется командой `make notices`.

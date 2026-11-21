@@ -1,0 +1,63 @@
+name: Баг
+description: Сообщить о воспроизводимой ошибке в приложении
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Не прикладывайте конфиденциальные документы и не сообщайте здесь об
+        уязвимостях: для этого есть [SECURITY.md](../blob/master/SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Что произошло
+      description: Опишите фактическое поведение и текст ошибки, если он есть.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги воспроизведения
+      placeholder: |
+        1. Открыть файл ...
+        2. Нажать ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: ОС и архитектура
+      options:
+        - macOS Apple Silicon
+        - macOS Intel
+        - Linux x64
+        - Windows x64
+        - Другое
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Версия LiteOffice Docs
+      description: Видна в меню «LiteOffice Docs → О приложении» или в имени файла релиза.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: format
+    attributes:
+      label: Формат документа
+      description: Если ошибка связана с открытием или сохранением файла.
+      placeholder: DOCX, RTF, Markdown, HTML, TXT
+  - type: textarea
+    id: extra
+    attributes:
+      label: Дополнительно
+      description: Логи, минимальный обезличенный файл-триггер, скриншоты.

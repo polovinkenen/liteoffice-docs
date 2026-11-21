@@ -1,4 +1,4 @@
-.PHONY: install dev build lint typecheck test test-rust fmt fmt-check clippy deny check
+.PHONY: install dev build lint typecheck test test-rust fmt fmt-check clippy deny notices check
 
 install:
 	npm ci
@@ -32,5 +32,8 @@ clippy:
 
 deny:
 	cargo deny check -W unmaintained
+
+notices:
+	node scripts/third-party-notices.mjs > THIRD_PARTY_NOTICES.md
 
 check: lint typecheck test test-rust fmt-check clippy deny

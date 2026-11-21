@@ -32,6 +32,7 @@ Tauri CLI ставится через `npm ci` (`@tauri-apps/cli` в devDependen
 | `make fmt-check` | `cargo fmt --all -- --check`. |
 | `make clippy` | `cargo clippy --workspace --all-targets -- -D warnings`. |
 | `make deny` | `cargo deny check -W unmaintained`. |
+| `make notices` | Пересобирает `THIRD_PARTY_NOTICES.md` из зависимостей и шрифтов. |
 | `make check` | lint, typecheck, test, test-rust, fmt-check, clippy, deny. |
 
 Фронтенд отдельно: `npm run build` выполняет `tsc --noEmit && vite build`, но не
@@ -160,7 +161,21 @@ LITEOFFICE_DOCS_PERF_MAX_MS=3000 LITEOFFICE_DOCS_PERF_MAX_MB=800 \
 ## Подпись и нотаризация
 
 Сейчас подпись не настроена: в `tauri.conf.json` и workflows нет конфигурации
-сертификатов, установщики выходят неподписанными. При включении подписи сертификаты и
-пароли нужно хранить в секретах CI и импортировать в хранилище ОС: Keychain на macOS,
-хранилище сертификатов Windows. В репозиторий, артефакты и образы сертификаты класть
-нельзя. Нотаризация macOS также не настроена.
+сертификатов, установщики выходят неподписанными. На macOS 15 Sequoia обход «правый
+клик → Открыть» больше не работает: пользователь подтверждает запуск в «Системных
+настройках» → «Конфиденциальность и безопасность» или снимает карантин вручную.
+
+Подпись macOS требует Apple Developer Program ($99/год), без него нотаризация
+невозможна; ad-hoc подпись (`"signingIdentity": "-"`) нужна только для запуска на
+Apple Silicon. При включении подписи сертификаты и пароли хранятся в секретах CI и
+импортируются в хранилище ОС: Keychain на macOS, хранилище сертификатов Windows.
+В репозиторий, артефакты и образы сертификаты класть нельзя.
+
+Порядок работ, каналы и автообновление — в [distribution.md](distribution.md).
+
+## Сторонние лицензии
+
+`THIRD_PARTY_NOTICES.md` генерируется из `Cargo.lock`, `package-lock.json` и
+встроенных шрифтов Liberation командой `make notices` и попадает в установщики через
+`bundle.resources`. Файл нужно перегенерировать при изменении зависимостей; вручную
+его не редактируют.

@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Кроссплатформенный редактор документов на Rust и Tauri",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

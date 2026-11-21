@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Уязвимость
+    url: https://github.com/polovinkenen/liteoffice-docs/security/advisories/new
+    about: Сообщите о проблеме безопасности приватно, не создавая публичный issue.
+  - name: Как участвовать
+    url: https://github.com/polovinkenen/liteoffice-docs/blob/master/CONTRIBUTING.md
+    about: Сборка, проверки, DCO и правила pull request.

@@ -37,6 +37,10 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "../LICENSE": "LICENSE",
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md"
+    },
     "category": "Productivity",
     "shortDescription": "Редактор документов",
     "longDescription": "Кроссплатформенный редактор документов с поддержкой DOCX, RTF, Markdown, HTML и экспортом в PDF.",
