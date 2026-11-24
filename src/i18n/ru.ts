@@ -48,7 +48,6 @@ export const ru = {
   status: {
     words: "Слов",
     characters: "Символов",
-    ready: "Готово",
     core: "Ядро",
   },
   documents: {

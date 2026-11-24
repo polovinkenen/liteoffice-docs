@@ -1157,7 +1157,7 @@ body {
 
 .statusbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 6px;
   color: var(--muted);
   font-size: 12px;

@@ -93,15 +93,14 @@ export default function Editor({ workspace }: EditorProps) {
           onClearRecent={() => void workspace.clearRecent()}
         />
       ) : null}
-      <footer className="statusbar">
-        <span>{ru.status.ready}</span>
-        {!showStart ? (
+      {!showStart ? (
+        <footer className="statusbar">
           <span>
             {ru.status.words}: {counts.words} · {ru.status.characters}:{" "}
             {counts.characters}
           </span>
-        ) : null}
-      </footer>
+        </footer>
+      ) : null}
     </section>
   );
 }
